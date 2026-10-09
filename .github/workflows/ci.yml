@@ -1,0 +1,31 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: learnio
+          POSTGRES_PASSWORD: learnio
+          POSTGRES_DB: learnio
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U learnio" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://learnio:learnio@localhost:5432/learnio
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: alembic upgrade head
+      - run: pytest --cov=app --cov-report=term-missing
