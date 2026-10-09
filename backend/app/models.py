@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     SmallInteger,
@@ -67,6 +68,7 @@ class Question(Base):
     text: Mapped[str] = mapped_column(Text)
     text_hash: Mapped[str] = mapped_column(String(64))
     difficulty: Mapped[int] = mapped_column(SmallInteger, default=3)
+    rand: Mapped[float] = mapped_column(Float(53), server_default=func.random())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     topics: Mapped[list[Topic]] = relationship(secondary=question_topics)

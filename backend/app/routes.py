@@ -1,5 +1,7 @@
+import random
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
@@ -154,20 +156,35 @@ async def upload_document(
 
 @router.post("/exams", response_model=ExamOut)
 def generate_exam(body: ExamRequest, client_id: str = "", session: Session = Depends(get_session)):
+    """Sample questions at random using the stored `rand` key.
+
+    Pick a random threshold, read the next N matching rows in (course_id, rand)
+    order, and wrap around to the start if fewer than N remain. Each question has
+    the same chance of appearing; questions adjacent in `rand` order tend to
+    appear together across exams, which is fine for practice exams.
+    """
     course = get_course(session, body.course_code)
-    stmt = select(Question).options(selectinload(Question.topics)).where(
-        Question.course_id == course.id,
-        Question.difficulty.between(body.min_difficulty, body.max_difficulty),
+    base = (
+        select(Question)
+        .options(selectinload(Question.topics))
+        .where(
+            Question.course_id == course.id,
+            Question.difficulty.between(body.min_difficulty, body.max_difficulty),
+        )
     )
     if body.topics:
-        stmt = stmt.where(
-            Question.id.in_(
-                select(question_topics.c.question_id)
-                .join(Topic, Topic.id == question_topics.c.topic_id)
-                .where(Topic.name.in_(body.topics))
-            )
+        topic_ids = select(Topic.id).where(Topic.course_id == course.id, Topic.name.in_(body.topics))
+        base = base.where(
+            Question.id.in_(select(question_topics.c.question_id).where(question_topics.c.topic_id.in_(topic_ids)))
         )
-    questions = session.scalars(stmt.order_by(func.random()).limit(body.num_questions)).all()
+
+    n = body.num_questions
+    threshold = random.random()
+    questions = list(session.scalars(base.where(Question.rand >= threshold).order_by(Question.rand).limit(n)))
+    if len(questions) < n:  # wrapped past the end of the index
+        questions += session.scalars(
+            base.where(Question.rand < threshold).order_by(Question.rand).limit(n - len(questions))
+        )
     session.add(UsageEvent(kind="exam_generated", client_id=client_id))
     session.commit()
     return ExamOut(course_code=course.code, questions=[to_out(q) for q in questions])
