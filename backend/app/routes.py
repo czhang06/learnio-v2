@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
@@ -63,20 +63,40 @@ def list_topics(code: str, session: Session = Depends(get_session)):
 def list_questions(
     course_code: str,
     topic: str | None = None,
-    difficulty: int | None = None,
-    offset: int = 0,
-    limit: int = 20,
+    difficulty: int | None = Query(None, ge=1, le=5),
+    offset: int = Query(0, ge=0),
+    after: int | None = Query(None, ge=0),
+    limit: int = Query(20, ge=1, le=100),
     session: Session = Depends(get_session),
 ):
+    """List questions in id order.
+
+    Prefer `after=<next_cursor>` (keyset pagination) over `offset`: it seeks
+    straight to the page instead of scanning and discarding every earlier row.
+    """
     course = get_course(session, course_code)
-    stmt = select(Question).options(selectinload(Question.topics)).where(Question.course_id == course.id)
     if topic:
-        stmt = stmt.join(question_topics).join(Topic).where(Topic.name == topic)
-    if difficulty:
+        topic_id = session.scalar(select(Topic.id).where(Topic.course_id == course.id, Topic.name == topic))
+        if topic_id is None:
+            return QuestionPage(items=[])
+        # Resolve the topic first so the planner walks the (topic_id, question_id)
+        # index in id order instead of scanning the whole link table.
+        stmt = (
+            select(Question)
+            .join(question_topics, question_topics.c.question_id == Question.id)
+            .where(question_topics.c.topic_id == topic_id)
+            .order_by(question_topics.c.question_id)
+        )
+        id_col = question_topics.c.question_id
+    else:
+        stmt = select(Question).where(Question.course_id == course.id).order_by(Question.id)
+        id_col = Question.id
+    if difficulty is not None:
         stmt = stmt.where(Question.difficulty == difficulty)
-    stmt = stmt.order_by(Question.id).offset(offset).limit(min(limit, 100))
-    items = [to_out(q) for q in session.scalars(stmt).all()]
-    return QuestionPage(items=items)
+    stmt = stmt.where(id_col > after) if after is not None else stmt.offset(offset)
+    rows = session.scalars(stmt.options(selectinload(Question.topics)).limit(limit)).all()
+    items = [to_out(q) for q in rows]
+    return QuestionPage(items=items, next_cursor=items[-1].id if len(items) == limit else None)
 
 
 @router.post("/documents", response_model=DocumentOut, status_code=201)
