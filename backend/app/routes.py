@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from .config import settings
 from .db import get_session
@@ -69,7 +69,7 @@ def list_questions(
     session: Session = Depends(get_session),
 ):
     course = get_course(session, course_code)
-    stmt = select(Question).where(Question.course_id == course.id)
+    stmt = select(Question).options(selectinload(Question.topics)).where(Question.course_id == course.id)
     if topic:
         stmt = stmt.join(question_topics).join(Topic).where(Topic.name == topic)
     if difficulty:
@@ -135,7 +135,7 @@ async def upload_document(
 @router.post("/exams", response_model=ExamOut)
 def generate_exam(body: ExamRequest, client_id: str = "", session: Session = Depends(get_session)):
     course = get_course(session, body.course_code)
-    stmt = select(Question).where(
+    stmt = select(Question).options(selectinload(Question.topics)).where(
         Question.course_id == course.id,
         Question.difficulty.between(body.min_difficulty, body.max_difficulty),
     )
