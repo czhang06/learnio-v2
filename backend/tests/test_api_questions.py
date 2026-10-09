@@ -162,12 +162,19 @@ def test_next_cursor_null_after_last_page(client, make_course, add_questions):
     assert page["next_cursor"] is None
 
 
-def test_limit_is_capped_at_100(client, make_course, add_questions):
+def test_limit_of_100_is_allowed(client, make_course, add_questions):
     course = make_course()
     add_questions(course, 105)
-    page = _get(client, limit=500)
+    page = _get(client, limit=100)
     assert len(page["items"]) == 100
     assert page["next_cursor"] == page["items"][-1]["id"]
+
+
+def test_limit_above_100_is_rejected(client, make_course, add_questions):
+    course = make_course()
+    add_questions(course, 105)
+    r = client.get("/api/questions", params={"course_code": "CS101", "limit": 500})
+    assert r.status_code == 422
 
 
 def test_default_limit_is_20(client, make_course, add_questions):
