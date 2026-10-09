@@ -1,0 +1,9 @@
+date: 2026-10-09T05:45:55Z
+os: MINGW64_NT-10.0-26200 3.6.10-710e5275.x86_64 x86_64
+cpu: Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+cores: 24
+postgres: 16.15
+python: Python 3.12.10
+k6: k6.exe v2.2.0 (commit/00a9a1b7f5, go1.26.5, windows/amd64)
+seed_rows: 500000  vus: 20  duration: 30s  api_workers: 1
+commit: 2fe82b7

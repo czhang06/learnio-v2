@@ -7,3 +7,4 @@ node_modules/
 .coverage
 bench/results/*.tmp
 pgdata/
+out-*.txt

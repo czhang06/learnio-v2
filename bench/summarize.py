@@ -19,15 +19,21 @@ SCENARIOS = {
 }
 
 
+def vals(metric: dict) -> dict:
+    """k6 versions differ: values sit at the top level or under a "values" key."""
+    return metric.get("values", metric)
+
+
 def load(path: Path) -> dict:
     metrics = json.loads(path.read_text())["metrics"]
-    dur = metrics["http_req_duration"]
+    dur = vals(metrics["http_req_duration"])
     return {
         "p50": dur["med"],
         "p95": dur["p(95)"],
         "p99": dur.get("p(99)", float("nan")),
-        "rps": metrics["http_reqs"]["rate"],
-        "failed": metrics.get("http_req_failed", {}).get("value", 0.0),
+        "rps": vals(metrics["http_reqs"])["rate"],
+        "failed": vals(metrics.get("http_req_failed", {})).get("rate", vals(metrics.get("http_req_failed", {})).get("value", 0.0)),
+        "checks": vals(metrics.get("checks", {})).get("rate", vals(metrics.get("checks", {})).get("value", float("nan"))),
     }
 
 
@@ -41,12 +47,12 @@ def main(results_dir: str) -> None:
         if scenario not in runs:
             continue
         print(f"### {title}\n")
-        print("| Version | p50 (ms) | p95 (ms) | p99 (ms) | Requests/s | Failed |")
-        print("|---|---:|---:|---:|---:|---:|")
+        print("| Version | p50 (ms) | p95 (ms) | p99 (ms) | Requests/s | HTTP errors | Checks passed |")
+        print("|---|---:|---:|---:|---:|---:|---:|")
         for tag in TAG_ORDER:
             r = runs[scenario].get(tag)
             if r:
-                print(f"| {tag} | {r['p50']:.1f} | {r['p95']:.1f} | {r['p99']:.1f} | {r['rps']:.0f} | {r['failed'] * 100:.1f}% |")
+                print(f"| {tag} | {r['p50']:.1f} | {r['p95']:.1f} | {r['p99']:.1f} | {r['rps']:.0f} | {r['failed'] * 100:.1f}% | {r['checks'] * 100:.1f}% |")
         print()
 
 
