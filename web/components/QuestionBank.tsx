@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import QuestionItem from "@/components/QuestionItem";
 import { errorMessage, listQuestions } from "@/lib/api";
 import type { Question } from "@/lib/api";
 
@@ -8,9 +9,10 @@ interface Props {
   course: string;
   topics: string[];
   refreshKey: number;
+  onUploadClick: () => void;
 }
 
-export default function QuestionBank({ course, topics, refreshKey }: Props) {
+export default function QuestionBank({ course, topics, refreshKey, onUploadClick }: Props) {
   const [topic, setTopic] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [items, setItems] = useState<Question[]>([]);
@@ -47,9 +49,10 @@ export default function QuestionBank({ course, topics, refreshKey }: Props) {
     [course, topic, difficulty]
   );
 
-  // Reset the topic filter when the course changes.
+  // Reset the filters when the course changes.
   useEffect(() => {
     setTopic("");
+    setDifficulty("");
   }, [course]);
 
   // Reload from the start whenever the filters, course or upload counter change.
@@ -62,65 +65,106 @@ export default function QuestionBank({ course, topics, refreshKey }: Props) {
     }
   }, [load, course, refreshKey]);
 
+  const filtered = topic !== "" || difficulty !== "";
+  const empty = loaded && items.length === 0 && !error;
+
   return (
-    <section className="card no-print" aria-labelledby="bank-h">
-      <h2 id="bank-h" className="mb-4 text-lg font-semibold">
-        Question bank
-      </h2>
-      <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        <div>
-          <label htmlFor="qb-topic" className="label">
-            Topic
-          </label>
-          <select id="qb-topic" className="field" value={topic} onChange={(e) => setTopic(e.target.value)}>
-            <option value="">All topics</option>
-            {topics.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="qb-diff" className="label">
+    <section aria-label="Questions">
+      <div className="filters">
+        {topics.length > 0 && (
+          <div className="filter-row">
+            <span id="qb-topic" className="filter-name">
+              Topic
+            </span>
+            <div className="choices" role="radiogroup" aria-labelledby="qb-topic">
+              {[""].concat(topics).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  role="radio"
+                  aria-checked={topic === t}
+                  className="choice"
+                  onClick={() => setTopic(t)}
+                >
+                  {t || "All"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="filter-row">
+          <span id="qb-diff" className="filter-name">
             Difficulty
-          </label>
-          <select id="qb-diff" className="field" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
-            <option value="">Any</option>
-            {[1, 2, 3, 4, 5].map((d) => (
-              <option key={d} value={String(d)}>
-                {d}
-              </option>
+          </span>
+          <div className="choices" role="radiogroup" aria-labelledby="qb-diff">
+            {["", "1", "2", "3", "4", "5"].map((d) => (
+              <button
+                key={d}
+                type="button"
+                role="radio"
+                aria-checked={difficulty === d}
+                className="choice"
+                onClick={() => setDifficulty(d)}
+              >
+                {d || "Any"}
+              </button>
             ))}
-          </select>
+          </div>
         </div>
       </div>
 
-      {!course && <p className="muted text-sm">Select a course to browse its questions.</p>}
       {error && (
-        <p className="alert-error mb-3" role="alert">
+        <p className="notice notice-error" role="alert">
           {error}
         </p>
       )}
-      {loaded && items.length === 0 && !error && <p className="muted text-sm">No questions match.</p>}
 
-      <ol className="space-y-3">
-        {items.map((q) => (
-          <li key={q.id} className="rounded-lg border p-3 text-sm" style={{ borderColor: "var(--border)" }}>
-            <p className="whitespace-pre-wrap">{q.text}</p>
-            <p className="muted mt-2 text-xs">
-              Difficulty {q.difficulty}
-              {q.topics.length > 0 ? " | " + q.topics.join(", ") : ""}
-            </p>
-          </li>
-        ))}
-      </ol>
+      {empty && !filtered && (
+        <div className="sheet sheet-empty">
+          <p>This course has no questions yet.</p>
+          <p>
+            <button type="button" className="text-button" onClick={onUploadClick}>
+              Upload a past exam
+            </button>{" "}
+            and its questions will appear here, laid out as they were printed.
+          </p>
+        </div>
+      )}
+      {empty && filtered && (
+        <div className="sheet sheet-empty">
+          <p>No questions match these filters.</p>
+          <p>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => {
+                setTopic("");
+                setDifficulty("");
+              }}
+            >
+              Clear filters
+            </button>
+          </p>
+        </div>
+      )}
 
-      <div className="mt-4" aria-live="polite">
-        {loading && <p className="muted text-sm">Loading...</p>}
+      {items.length > 0 && (
+        <div className="sheet">
+          <ol className="questions">
+            {items.map((q, i) => (
+              <li key={q.id}>
+                <QuestionItem question={q} number={i + 1} />
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      <div className="below-sheet" aria-live="polite">
+        {loading && <p className="muted">Loading questions…</p>}
         {!loading && cursor !== null && (
-          <button type="button" className="btn-secondary" onClick={() => void load(cursor)}>
-            Load more
+          <button type="button" className="btn-quiet" onClick={() => void load(cursor)}>
+            Show more questions
           </button>
         )}
       </div>

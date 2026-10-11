@@ -1,36 +1,67 @@
 "use client";
 
-import { useState } from "react";
-import type { FormEvent } from "react";
+import { useEffect, useState } from "react";
+import type { DragEvent, FormEvent } from "react";
 import { errorMessage, uploadDocument } from "@/lib/api";
-import type { Course, DocumentOut } from "@/lib/api";
+import type { DocumentOut } from "@/lib/api";
 
 interface Props {
-  courses: Course[];
-  selected: string;
+  course: string;
   clientId: string;
   onUploaded: () => void;
+  onViewQuestions: () => void;
 }
 
-export default function UploadForm({ courses, selected, clientId, onUploaded }: Props) {
-  const [course, setCourse] = useState("");
+const KINDS = [
+  { value: "exam", label: "Past exam" },
+  { value: "syllabus", label: "Syllabus" },
+];
+
+function isPdf(file: File): boolean {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
+export default function UploadForm({ course, clientId, onUploaded, onViewQuestions }: Props) {
   const [kind, setKind] = useState("exam");
   const [file, setFile] = useState<File | null>(null);
+  const [over, setOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DocumentOut | null>(null);
   const [inputKey, setInputKey] = useState(0);
 
-  const effectiveCourse = course || selected;
+  useEffect(() => {
+    setFile(null);
+    setError(null);
+    setResult(null);
+    setInputKey((k) => k + 1);
+  }, [course]);
+
+  function choose(next: File | null) {
+    setResult(null);
+    if (next && !isPdf(next)) {
+      setFile(null);
+      setError(next.name + " is not a PDF. Choose a file ending in .pdf.");
+      return;
+    }
+    setError(null);
+    setFile(next);
+  }
+
+  function drop(e: DragEvent<HTMLLabelElement>) {
+    e.preventDefault();
+    setOver(false);
+    choose(e.dataTransfer.files.length > 0 ? e.dataTransfer.files[0] : null);
+  }
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!file || !effectiveCourse) return;
+    if (!file || !course) return;
     setBusy(true);
     setError(null);
     setResult(null);
     try {
-      const doc = await uploadDocument(effectiveCourse, kind, clientId, file);
+      const doc = await uploadDocument(course, kind, clientId, file);
       setResult(doc);
       setFile(null);
       setInputKey((k) => k + 1);
@@ -43,67 +74,79 @@ export default function UploadForm({ courses, selected, clientId, onUploaded }: 
   }
 
   return (
-    <section className="card no-print" aria-labelledby="upload-h">
-      <h2 id="upload-h" className="mb-4 text-lg font-semibold">
-        Upload a PDF
-      </h2>
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label htmlFor="up-course" className="label">
-            Course
-          </label>
-          <select
-            id="up-course"
-            className="field"
-            value={effectiveCourse}
-            onChange={(e) => setCourse(e.target.value)}
-            disabled={courses.length === 0}
-          >
-            {courses.length === 0 && <option value="">No courses</option>}
-            {courses.map((c) => (
-              <option key={c.id} value={c.code}>
-                {c.code}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="up-kind" className="label">
-            Kind
-          </label>
-          <select id="up-kind" className="field" value={kind} onChange={(e) => setKind(e.target.value)}>
-            <option value="exam">Exam</option>
-            <option value="syllabus">Syllabus</option>
-          </select>
-        </div>
-        <div className="sm:col-span-2">
-          <label htmlFor="up-file" className="label">
-            PDF file
-          </label>
+    <section aria-label="Upload">
+      <form onSubmit={submit} className="form">
+        <label
+          htmlFor="up-file"
+          className={over ? "dropzone dropzone-over" : "dropzone"}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setOver(true);
+          }}
+          onDragLeave={() => setOver(false)}
+          onDrop={drop}
+        >
           <input
             key={inputKey}
             id="up-file"
             type="file"
             accept="application/pdf,.pdf"
-            className="field"
-            onChange={(e) => setFile(e.target.files && e.target.files.length > 0 ? e.target.files[0] : null)}
+            className="sr-only-input"
+            onChange={(e) => choose(e.target.files && e.target.files.length > 0 ? e.target.files[0] : null)}
           />
-        </div>
-        <div className="sm:col-span-2">
-          <button type="submit" className="btn" disabled={busy || !file || !effectiveCourse}>
-            {busy ? "Uploading and processing..." : "Upload"}
+          {file ? (
+            <>
+              <span className="dropzone-file">{file.name}</span>
+              <span className="muted">Choose a different PDF</span>
+            </>
+          ) : (
+            <>
+              <span className="dropzone-file">Drop a PDF here</span>
+              <span className="muted">or choose one from your computer</span>
+            </>
+          )}
+        </label>
+
+        <fieldset>
+          <legend className="label">This PDF is a</legend>
+          <div className="choices" role="radiogroup">
+            {KINDS.map((k) => (
+              <button
+                key={k.value}
+                type="button"
+                role="radio"
+                aria-checked={kind === k.value}
+                className="choice"
+                onClick={() => setKind(k.value)}
+              >
+                {k.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="form-actions">
+          <button type="submit" className="btn" disabled={busy || !file || !course}>
+            {busy ? "Reading the PDF…" : "Upload to " + (course || "course")}
           </button>
+          {busy && <span className="muted">Splitting it into questions. Long exams take a moment.</span>}
         </div>
-        <div className="sm:col-span-2" aria-live="polite">
+
+        <div aria-live="polite">
           {error && (
-            <p className="alert-error" role="alert">
+            <p className="notice notice-error" role="alert">
               {error}
             </p>
           )}
           {result && (
-            <p className="alert-ok">
-              {result.filename}: {result.status}. {result.question_count} new question
-              {result.question_count === 1 ? "" : "s"} added.
+            <p className="notice notice-ok">
+              Uploaded {result.filename}.{" "}
+              {result.question_count === 0
+                ? "No new questions: everything in it is already in the bank."
+                : result.question_count + " new question" + (result.question_count === 1 ? "" : "s") + " added."}{" "}
+              <button type="button" className="text-button" onClick={onViewQuestions}>
+                View questions
+              </button>
             </p>
           )}
         </div>

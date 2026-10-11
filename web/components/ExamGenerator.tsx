@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import QuestionItem from "@/components/QuestionItem";
 import { errorMessage, generateExam } from "@/lib/api";
 import type { Exam } from "@/lib/api";
+import { formatMarks, parseQuestion } from "@/lib/questionFormat";
+import type { Marks } from "@/lib/questionFormat";
 
 interface Props {
   course: string;
@@ -11,14 +14,27 @@ interface Props {
   clientId: string;
 }
 
+const LEVELS = ["1", "2", "3", "4", "5"];
+
 function clamp(n: number, lo: number, hi: number): number {
   if (Number.isNaN(n)) return lo;
   return Math.min(hi, Math.max(lo, Math.round(n)));
 }
 
+/** The exam's total, when every question states its marks in the same unit. */
+function totalMarks(exam: Exam): Marks | null {
+  let total: Marks | null = null;
+  for (const q of exam.questions) {
+    const marks = parseQuestion(q.text).marks;
+    if (!marks || (total && total.unit !== marks.unit)) return null;
+    total = { value: (total ? total.value : 0) + marks.value, unit: marks.unit };
+  }
+  return total;
+}
+
 export default function ExamGenerator({ course, topics, clientId }: Props) {
   const [picked, setPicked] = useState<string[]>([]);
-  const [num, setNum] = useState("20");
+  const [num, setNum] = useState("10");
   const [minD, setMinD] = useState("1");
   const [maxD, setMaxD] = useState("5");
   const [busy, setBusy] = useState(false);
@@ -31,6 +47,8 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
     setError(null);
   }, [course]);
 
+  const total = useMemo(() => (exam ? totalMarks(exam) : null), [exam]);
+
   function toggle(t: string) {
     setPicked((prev) => (prev.indexOf(t) >= 0 ? prev.filter((x) => x !== t) : prev.concat(t)));
   }
@@ -41,7 +59,7 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
     const lo = clamp(Number(minD), 1, 5);
     const hi = clamp(Number(maxD), 1, 5);
     if (lo > hi) {
-      setError("Minimum difficulty cannot be greater than maximum difficulty.");
+      setError("The easiest difficulty is above the hardest. Swap them or pick a wider range.");
       return;
     }
     setBusy(true);
@@ -66,121 +84,115 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
   }
 
   return (
-    <section aria-labelledby="exam-h" className="space-y-4">
-      <div className="card no-print">
-        <h2 id="exam-h" className="mb-4 text-lg font-semibold">
-          Exam generator
-        </h2>
-        <form onSubmit={submit} className="grid gap-4">
+    <section aria-label="Practice exam">
+      <form onSubmit={submit} className="form no-print">
+        {topics.length > 0 && (
           <fieldset>
-            <legend className="label">Topics (none selected means all)</legend>
-            {topics.length === 0 ? (
-              <p className="muted text-sm">This course has no topics.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {topics.map((t, i) => (
-                  <label
-                    key={t}
-                    htmlFor={"ex-topic-" + i}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm"
-                    style={{ borderColor: "var(--border)" }}
-                  >
-                    <input
-                      id={"ex-topic-" + i}
-                      type="checkbox"
-                      checked={picked.indexOf(t) >= 0}
-                      onChange={() => toggle(t)}
-                    />
-                    {t}
-                  </label>
-                ))}
-              </div>
-            )}
-          </fieldset>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div>
-              <label htmlFor="ex-num" className="label">
-                Number of questions (1-100)
-              </label>
-              <input
-                id="ex-num"
-                type="number"
-                min={1}
-                max={100}
-                className="field"
-                value={num}
-                onChange={(e) => setNum(e.target.value)}
-              />
+            <legend className="label">
+              Topics <span className="hint">leave all unpicked to draw from every topic</span>
+            </legend>
+            <div className="choices">
+              {topics.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  aria-pressed={picked.indexOf(t) >= 0}
+                  className="choice"
+                  onClick={() => toggle(t)}
+                >
+                  {t}
+                </button>
+              ))}
             </div>
-            <div>
-              <label htmlFor="ex-min" className="label">
-                Min difficulty (1-5)
-              </label>
-              <input
-                id="ex-min"
-                type="number"
-                min={1}
-                max={5}
-                className="field"
+          </fieldset>
+        )}
+
+        <div className="form-row">
+          <div>
+            <label htmlFor="ex-num" className="label">
+              Questions
+            </label>
+            <input
+              id="ex-num"
+              type="number"
+              min={1}
+              max={100}
+              className="field field-narrow"
+              value={num}
+              onChange={(e) => setNum(e.target.value)}
+            />
+          </div>
+          <fieldset>
+            <legend className="label">Difficulty</legend>
+            <div className="range">
+              <select
+                aria-label="Easiest difficulty"
+                className="field field-narrow"
                 value={minD}
                 onChange={(e) => setMinD(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="ex-max" className="label">
-                Max difficulty (1-5)
-              </label>
-              <input
-                id="ex-max"
-                type="number"
-                min={1}
-                max={5}
-                className="field"
+              >
+                {LEVELS.map((d) => (
+                  <option key={d}>{d}</option>
+                ))}
+              </select>
+              <span>to</span>
+              <select
+                aria-label="Hardest difficulty"
+                className="field field-narrow"
                 value={maxD}
                 onChange={(e) => setMaxD(e.target.value)}
-              />
+              >
+                {LEVELS.map((d) => (
+                  <option key={d}>{d}</option>
+                ))}
+              </select>
             </div>
-          </div>
+          </fieldset>
+        </div>
 
-          {error && (
-            <p className="alert-error" role="alert">
-              {error}
-            </p>
+        {error && (
+          <p className="notice notice-error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="form-actions">
+          <button type="submit" className="btn" disabled={busy || !course}>
+            {busy ? "Generating…" : exam ? "Generate another exam" : "Generate exam"}
+          </button>
+          {exam && exam.questions.length > 0 && (
+            <button type="button" className="btn-quiet" onClick={() => window.print()}>
+              Print or save as PDF
+            </button>
           )}
-          <div>
-            <button type="submit" className="btn" disabled={busy || !course}>
-              {busy ? "Generating..." : "Generate exam"}
-            </button>
-          </div>
-        </form>
-      </div>
+        </div>
+      </form>
 
-      {exam && (
-        <div className="card print-area" aria-live="polite">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold">Practice exam: {exam.course_code}</h3>
-            <button type="button" className="btn-secondary no-print" onClick={() => window.print()}>
-              Print / Save as PDF
-            </button>
+      <div aria-live="polite">
+        {exam && exam.questions.length === 0 && (
+          <div className="sheet sheet-empty">
+            <p>No questions match these settings.</p>
+            <p>Pick fewer topics or widen the difficulty range, then generate again.</p>
           </div>
-          {exam.questions.length === 0 ? (
-            <p className="muted text-sm">No questions matched those settings.</p>
-          ) : (
-            <ol className="list-decimal space-y-5 pl-6">
-              {exam.questions.map((q) => (
-                <li key={q.id} className="text-sm leading-relaxed">
-                  <p className="whitespace-pre-wrap">{q.text}</p>
-                  <p className="muted no-print mt-1 text-xs">
-                    Difficulty {q.difficulty}
-                    {q.topics.length > 0 ? " | " + q.topics.join(", ") : ""}
-                  </p>
+        )}
+        {exam && exam.questions.length > 0 && (
+          <div className="sheet">
+            <header className="sheet-head">
+              <h2 className="sheet-title">{exam.course_code} practice exam</h2>
+              <p className="sheet-facts">
+                {exam.questions.length} question{exam.questions.length === 1 ? "" : "s"}
+                {total ? ", total: " + formatMarks(total) : ""}
+              </p>
+            </header>
+            <ol className="questions">
+              {exam.questions.map((q, i) => (
+                <li key={q.id}>
+                  <QuestionItem question={q} number={i + 1} />
                 </li>
               ))}
             </ol>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </section>
   );
 }
