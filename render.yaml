@@ -1,33 +1,37 @@
-# Render blueprint: one web service + one Postgres instance.
+# Render blueprint: the API only.
 #
-# Deploy by pointing Render at this repo (New > Blueprint). Check the current
-# free-tier terms yourself before relying on them -- they change, and a free
-# Postgres instance on some plans expires after a fixed period.
+# The database is deliberately NOT provisioned here. Render's free Postgres
+# expires 30 days after creation and is deleted after a further 14-day grace
+# period, which is useless for a demo that needs to stay reachable. Use Neon
+# instead (free tier is permanent, no card, scales to zero when idle) and paste
+# its connection string into DATABASE_URL below.
 #
-# After the first deploy, set ALLOWED_ORIGINS to the Vercel URL of the
-# frontend, otherwise the browser will block every request with a CORS error.
+# Deploy: Render dashboard > New > Blueprint > connect this repo.
+#
+# After the frontend is on Vercel, set ALLOWED_ORIGINS to its URL. Until then
+# "*" is fine -- there is no auth and no cookies, so a wildcard origin exposes
+# nothing that the API would not serve to a direct request anyway.
 
 services:
   - type: web
     name: learnio-api
     runtime: docker
+    # Free instance type. Render's dashboard defaults to a PAID tier when you
+    # create a service by hand, so pin it here and deploy via the blueprint.
+    plan: free
     rootDir: backend
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
     envVars:
+      # Neon connection string. Any scheme works -- config.py rewrites
+      # postgres:// and postgresql:// to the psycopg driver.
       - key: DATABASE_URL
-        fromDatabase:
-          name: learnio-db
-          property: connectionString
-      # Set to the deployed frontend origin, e.g. https://learnio.vercel.app
+        sync: false
+      # The deployed frontend origin, e.g. https://learnio.vercel.app
+      # Comma-separate to allow several.
       - key: ALLOWED_ORIGINS
         sync: false
-      # Optional: enables LLM topic tagging on upload. Without it the app
-      # falls back to keyword matching and still works.
+      # Optional. Enables LLM topic tagging on upload; without it the app
+      # falls back to keyword matching and still works end to end.
       - key: GEMINI_API_KEY
         sync: false
-
-databases:
-  - name: learnio-db
-    databaseName: learnio
-    user: learnio
