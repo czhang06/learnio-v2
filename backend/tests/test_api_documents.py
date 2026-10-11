@@ -3,6 +3,7 @@ from sqlalchemy import func, select
 
 from app.config import settings
 from app.models import Document, Question, UsageEvent
+from app.services import segmenter
 
 QUESTIONS = [
     "Explain how recursion works using a small example.",
@@ -71,6 +72,32 @@ def test_reupload_same_pdf_stores_no_new_questions(client, make_course, db_sessi
     assert second.status_code == 201
     assert second.json()["question_count"] == 0
     assert count(db_session, Question) == 3
+
+
+def test_reupload_refreshes_layout_of_a_question_stored_flat(client, make_course, db_session):
+    course = make_course()
+    flat = "Consider the table below and name its key. CREATE TABLE t (a INT, b INT)"
+    db_session.add(Question(course_id=course.id, text=flat, text_hash=segmenter.text_hash(flat)))
+    db_session.commit()
+
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((50, 72), "1. Consider the table below and name its key.", fontsize=10)
+    page.insert_text((90, 90), "CREATE TABLE t", fontsize=10)
+    page.insert_text((120, 104), "(a INT, b INT)", fontsize=10)
+    r = upload(client, doc.tobytes())
+    doc.close()
+
+    assert r.json()["question_count"] == 0
+    assert count(db_session, Question) == 1
+    lines = db_session.scalar(select(Question.text)).split("\n")
+    assert [line.strip() for line in lines] == [
+        "Consider the table below and name its key.",
+        "CREATE TABLE t",
+        "(a INT, b INT)",
+    ]
+    indents = [len(line) - len(line.lstrip()) for line in lines]
+    assert indents[0] == 0 < indents[1] < indents[2]
 
 
 def test_overlapping_pdf_only_stores_new_questions(client, make_course, db_session):

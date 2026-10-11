@@ -1,7 +1,7 @@
 import random
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
@@ -149,6 +149,13 @@ async def upload_document(
             .returning(Question.id)
         ).first()
         if row is None:  # duplicate question already in this course
+            # Same words, possibly better layout: re-uploading a PDF refreshes
+            # questions stored before line breaks were kept.
+            session.execute(
+                update(Question)
+                .where(Question.course_id == course.id, Question.text_hash == segmenter.text_hash(piece))
+                .values(text=piece)
+            )
             continue
         stored += 1
         for name in names:
