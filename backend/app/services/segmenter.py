@@ -11,8 +11,26 @@ import re
 
 from ..config import settings
 
-# "1." / "1)" / "Question 1" at the start of a line begins a new question.
-_QUESTION_START = re.compile(r"^\s*(?:question\s+)?(\d{1,3})[\.\):]\s+", re.IGNORECASE | re.MULTILINE)
+# A new question begins at the start of a line (or of a page: PDF extractors
+# emit "\f" at page breaks, which "^" alone does not treat as a line start) with:
+#   - a keyword heading: "Question 1", "Problem 2:" (separator optional)
+#   - a bare number with a separator: "1." / "2)" / "3:"
+#   - a bare number followed by a mark count: "4 (10 marks)"
+# A plain number needs the separator or the mark count so that "2004" in a
+# header line does not start a question.
+_QUESTION_START = re.compile(
+    r"(?:^|\f)[ \t\f]*(?:"
+    r"(?:question|problem)\s*\d{1,3}\b[ \t]*[\.\):]?"
+    r"|\d{1,3}[\.\):](?=\s)"
+    r"|\d{1,3}(?=[ \t]*[\(\[][ \t]*\d+[ \t]*(?:marks?|points?|pts?)\b)"
+    r")\s*",
+    re.IGNORECASE | re.MULTILINE,
+)
+# Sign-offs after the last question: "--- The End ---", "Good luck!".
+_SIGN_OFF = re.compile(
+    r"(?:\s*(?:-{2,}\s*(?:the\s+)?end(?:\s+of\s+\w+)?\s*-{2,}|good\s+luck[!.]*))+\s*$",
+    re.IGNORECASE,
+)
 _MIN_CHARS = 25
 
 
@@ -31,7 +49,7 @@ def split_questions(raw: str) -> list[str]:
     questions: list[str] = []
     for i, m in enumerate(matches):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(raw)
-        body = normalize(raw[m.end():end])
+        body = normalize(_SIGN_OFF.sub("", raw[m.end():end]))
         if len(body) >= _MIN_CHARS:
             questions.append(body)
     return questions

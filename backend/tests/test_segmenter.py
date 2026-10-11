@@ -43,6 +43,49 @@ def test_text_before_first_question_is_ignored():
     assert segmenter.split_questions(raw) == [LONG_A]
 
 
+# The cases below mirror the structure of a real exam that parsed to zero
+# questions: headings with mark annotations, a question opening a new page,
+# a year in the header, and a sign-off after the last question.
+
+
+def test_split_keyword_heading_with_mark_annotation():
+    raw = f"Question 1 (9 points)\n{LONG_A}\nQuestion 2 (11 points)\n{LONG_B}\n"
+    assert segmenter.split_questions(raw) == [f"(9 points) {LONG_A}", f"(11 points) {LONG_B}"]
+
+
+def test_split_problem_keyword_without_separator():
+    raw = f"Problem 1\n{LONG_A}\nPROBLEM 2\n{LONG_B}\n"
+    assert segmenter.split_questions(raw) == [LONG_A, LONG_B]
+
+
+def test_split_bare_number_with_mark_count():
+    raw = f"1 (10 marks) {LONG_A}\n2 [5 marks] {LONG_B}\n"
+    assert segmenter.split_questions(raw) == [f"(10 marks) {LONG_A}", f"[5 marks] {LONG_B}"]
+
+
+def test_split_question_starting_a_new_page():
+    raw = f"Question 1 (9 points)\n{LONG_A}\fQuestion 2 (11 points)\n{LONG_B}\n"
+    assert segmenter.split_questions(raw) == [f"(9 points) {LONG_A}", f"(11 points) {LONG_B}"]
+
+
+def test_split_numbered_question_after_page_break_and_newline():
+    raw = f"1. {LONG_A}\n\f 2. {LONG_B}\n"
+    assert segmenter.split_questions(raw) == [LONG_A, LONG_B]
+
+
+def test_year_in_header_does_not_start_a_question():
+    raw = f"Midterm Examination\n2004 Winter Term 1, 50 minutes in total\n1. {LONG_A}\n"
+    assert segmenter.split_questions(raw) == [LONG_A]
+
+
+def test_trailing_sign_off_is_stripped():
+    raw = f"1. {LONG_A}\n2. {LONG_B}\n\n--- The End ---\nGood luck!\n"
+    assert segmenter.split_questions(raw) == [LONG_A, LONG_B]
+    assert segmenter.split_questions("1. Walk the linked list from the head to the end.") == [
+        "Walk the linked list from the head to the end."
+    ]
+
+
 def test_normalize_collapses_whitespace():
     assert segmenter.normalize("  a \n\t b   c  ") == "a b c"
 

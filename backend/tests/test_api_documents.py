@@ -100,11 +100,13 @@ def test_upload_writes_document_and_usage_event(client, make_course, db_session)
     assert (event.kind, event.client_id) == ("upload", "abc")
 
 
-def test_pdf_without_questions_gives_zero(client, make_course):
+def test_pdf_without_questions_is_rejected_and_marked_empty(client, make_course, db_session):
     make_course()
     r = upload(client, make_pdf(["just a plain sentence with no numbering"], style="{q}"))
-    assert r.status_code == 201
-    assert r.json()["question_count"] == 0
+    assert r.status_code == 422
+    assert "Question 3" in r.json()["detail"]
+    doc = db_session.scalars(select(Document)).one()
+    assert (doc.status, doc.question_count) == ("empty", 0)
 
 
 def test_non_pdf_filename_returns_415(client, make_course):

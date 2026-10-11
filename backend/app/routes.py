@@ -128,6 +128,14 @@ async def upload_document(
         raise HTTPException(422, f"Could not read PDF: {exc}") from exc
 
     pieces = segmenter.split_questions(text)
+    if not pieces:
+        doc.status = "empty"
+        session.commit()
+        raise HTTPException(
+            422,
+            "No questions found in this PDF. Questions must start on their own line with a heading "
+            'like "1.", "2)", "Question 3" or "4 (10 marks)".',
+        )
     topic_names = [t.name for t in course.topics]
     labels = segmenter.tag_topics_with_llm(pieces, topic_names)
     topic_ids = {t.name: t.id for t in course.topics}
