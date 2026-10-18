@@ -19,18 +19,6 @@ export default function QuestionItem({ question, number }: Props) {
         {parsed.marks && <span className="question-marks">{formatMarks(parsed.marks)}</span>}
         <QuestionText blocks={parsed.blocks} />
         <div className="question-meta no-print">
-          <span className="difficulty">
-            <span className="bars" aria-hidden="true">
-              {[1, 2, 3, 4, 5].map((d) => (
-                <span
-                  key={d}
-                  className={d <= question.difficulty ? "bar bar-on" : "bar"}
-                  style={{ height: 20 + d * 16 + "%" }}
-                />
-              ))}
-            </span>
-            Difficulty {question.difficulty} of 5
-          </span>
           {question.topics.length > 0 && (
             <span className="topic-tags">
               {question.topics.map((t) => (

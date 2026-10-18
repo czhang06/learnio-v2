@@ -9,7 +9,6 @@ export interface Course {
 export interface Question {
   id: number;
   text: string;
-  difficulty: number;
   topics: string[];
 }
 
@@ -34,8 +33,6 @@ export interface ExamParams {
   course_code: string;
   topics: string[];
   num_questions: number;
-  min_difficulty: number;
-  max_difficulty: number;
 }
 
 export class ApiError extends Error {
@@ -126,7 +123,6 @@ export function uploadDocument(
 export interface QuestionQuery {
   courseCode: string;
   topic?: string;
-  difficulty?: number;
   after?: number | null;
   limit?: number;
 }
@@ -135,7 +131,6 @@ export function listQuestions(q: QuestionQuery): Promise<QuestionPage> {
   const params = new URLSearchParams();
   params.set("course_code", q.courseCode);
   if (q.topic) params.set("topic", q.topic);
-  if (q.difficulty) params.set("difficulty", String(q.difficulty));
   if (q.after !== undefined && q.after !== null) params.set("after", String(q.after));
   params.set("limit", String(q.limit ?? 20));
   return request<QuestionPage>("/api/questions?" + params.toString());

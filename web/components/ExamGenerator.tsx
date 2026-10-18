@@ -14,8 +14,6 @@ interface Props {
   clientId: string;
 }
 
-const LEVELS = ["1", "2", "3", "4", "5"];
-
 function clamp(n: number, lo: number, hi: number): number {
   if (Number.isNaN(n)) return lo;
   return Math.min(hi, Math.max(lo, Math.round(n)));
@@ -35,8 +33,6 @@ function totalMarks(exam: Exam): Marks | null {
 export default function ExamGenerator({ course, topics, clientId }: Props) {
   const [picked, setPicked] = useState<string[]>([]);
   const [num, setNum] = useState("10");
-  const [minD, setMinD] = useState("1");
-  const [maxD, setMaxD] = useState("5");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exam, setExam] = useState<Exam | null>(null);
@@ -56,12 +52,6 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!course) return;
-    const lo = clamp(Number(minD), 1, 5);
-    const hi = clamp(Number(maxD), 1, 5);
-    if (lo > hi) {
-      setError("The easiest difficulty is above the hardest. Swap them or pick a wider range.");
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -70,8 +60,6 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
           course_code: course,
           topics: picked,
           num_questions: clamp(Number(num), 1, 100),
-          min_difficulty: lo,
-          max_difficulty: hi,
         },
         clientId
       );
@@ -107,47 +95,19 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
           </fieldset>
         )}
 
-        <div className="form-row">
-          <div>
-            <label htmlFor="ex-num" className="label">
-              Questions
-            </label>
-            <input
-              id="ex-num"
-              type="number"
-              min={1}
-              max={100}
-              className="field field-narrow"
-              value={num}
-              onChange={(e) => setNum(e.target.value)}
-            />
-          </div>
-          <fieldset>
-            <legend className="label">Difficulty</legend>
-            <div className="range">
-              <select
-                aria-label="Easiest difficulty"
-                className="field field-narrow"
-                value={minD}
-                onChange={(e) => setMinD(e.target.value)}
-              >
-                {LEVELS.map((d) => (
-                  <option key={d}>{d}</option>
-                ))}
-              </select>
-              <span>to</span>
-              <select
-                aria-label="Hardest difficulty"
-                className="field field-narrow"
-                value={maxD}
-                onChange={(e) => setMaxD(e.target.value)}
-              >
-                {LEVELS.map((d) => (
-                  <option key={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-          </fieldset>
+        <div>
+          <label htmlFor="ex-num" className="label">
+            Questions
+          </label>
+          <input
+            id="ex-num"
+            type="number"
+            min={1}
+            max={100}
+            className="field field-narrow"
+            value={num}
+            onChange={(e) => setNum(e.target.value)}
+          />
         </div>
 
         {error && (
@@ -171,7 +131,7 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
         {exam && exam.questions.length === 0 && (
           <div className="empty">
             <p className="empty-title">No questions match these settings</p>
-            <p>Pick fewer topics or widen the difficulty range, then generate again.</p>
+            <p>Pick more topics, or none to draw from every topic, then generate again.</p>
           </div>
         )}
         {exam && exam.questions.length > 0 && (

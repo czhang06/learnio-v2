@@ -1,6 +1,6 @@
 # LearnIO
 
-Upload past exams and syllabi (PDF), build a searchable question bank per course, and generate practice exams filtered by topic and difficulty.
+Upload past exams and syllabi (PDF), build a searchable question bank per course, and generate practice exams filtered by topic.
 
 - **Backend:** FastAPI, SQLAlchemy 2, PostgreSQL, Alembic migrations
 - **Ingestion:** PyMuPDF text extraction, rule-based question splitting, optional Gemini topic tagging, content-hash deduplication

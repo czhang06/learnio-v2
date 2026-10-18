@@ -408,32 +408,6 @@ body {
     color: var(--accent-text);
     font-weight: 600;
   }
-  /* Difficulty: one connected row of six steps. */
-  .steps {
-    display: grid;
-    grid-template-columns: 1.6fr repeat(5, 1fr);
-    border: 1px solid var(--line-strong);
-    border-radius: 6px;
-    overflow: hidden;
-  }
-  .step {
-    padding: 0.3125rem 0;
-    background: var(--surface);
-    font-size: 0.875rem;
-    font-variant-numeric: tabular-nums;
-  }
-  .step + .step {
-    border-left: 1px solid var(--line);
-  }
-  .step:hover {
-    background: var(--well);
-  }
-  .step[aria-checked="true"] {
-    background: var(--accent);
-    color: var(--accent-ink);
-    font-weight: 600;
-  }
-
   /* ---------- the question sheet ---------- */
 
   .sheet {
@@ -518,26 +492,6 @@ body {
     font-size: 0.8125rem;
     color: var(--muted);
   }
-  /* Difficulty as a five-bar meter, rising like signal strength. */
-  .difficulty {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .bars {
-    display: inline-flex;
-    align-items: flex-end;
-    gap: 2px;
-    height: 0.75rem;
-  }
-  .bar {
-    width: 3px;
-    border-radius: 1px;
-    background: var(--line-strong);
-  }
-  .bar-on {
-    background: var(--ink);
-  }
   .topic-tags {
     display: inline-flex;
     flex-wrap: wrap;
@@ -586,16 +540,6 @@ body {
   .form {
     display: grid;
     gap: 1.25rem;
-  }
-  .form-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.25rem 2.5rem;
-  }
-  .range {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
   }
   .form-actions {
     display: flex;
@@ -694,9 +638,6 @@ body {
   }
   .option[aria-checked="true"] {
     border-color: var(--accent);
-  }
-  .steps {
-    max-width: 20rem;
   }
   .question {
     grid-template-columns: 2.5rem minmax(0, 1fr);

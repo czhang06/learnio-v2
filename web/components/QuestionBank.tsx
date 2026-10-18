@@ -14,7 +14,6 @@ interface Props {
 
 export default function QuestionBank({ course, topics, refreshKey, onUploadClick }: Props) {
   const [topic, setTopic] = useState("");
-  const [difficulty, setDifficulty] = useState("");
   const [items, setItems] = useState<Question[]>([]);
   const [cursor, setCursor] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,7 +31,6 @@ export default function QuestionBank({ course, topics, refreshKey, onUploadClick
         const page = await listQuestions({
           courseCode: course,
           topic: topic || undefined,
-          difficulty: difficulty ? Number(difficulty) : undefined,
           after,
         });
         if (my !== seq.current) return;
@@ -46,13 +44,12 @@ export default function QuestionBank({ course, topics, refreshKey, onUploadClick
         if (my === seq.current) setLoading(false);
       }
     },
-    [course, topic, difficulty]
+    [course, topic]
   );
 
-  // Reset the filters when the course changes.
+  // Reset the topic filter when the course changes.
   useEffect(() => {
     setTopic("");
-    setDifficulty("");
   }, [course]);
 
   // Reload from the start whenever the filters, course or upload counter change.
@@ -65,13 +62,13 @@ export default function QuestionBank({ course, topics, refreshKey, onUploadClick
     }
   }, [load, course, refreshKey]);
 
-  const filtered = topic !== "" || difficulty !== "";
+  const filtered = topic !== "";
   const empty = loaded && items.length === 0 && !error;
 
   return (
-    <section aria-label="Questions" className="bank">
-      <aside className="filters" aria-label="Filter questions">
-        {topics.length > 0 && (
+    <section aria-label="Questions" className={topics.length > 0 ? "bank" : undefined}>
+      {topics.length > 0 && (
+        <aside className="filters" aria-label="Filter questions">
           <div>
             <p id="qb-topic" className="filter-name">
               Topic
@@ -91,28 +88,8 @@ export default function QuestionBank({ course, topics, refreshKey, onUploadClick
               ))}
             </div>
           </div>
-        )}
-        <div>
-          <p id="qb-diff" className="filter-name">
-            Difficulty
-          </p>
-          <div className="steps" role="radiogroup" aria-labelledby="qb-diff">
-            {["", "1", "2", "3", "4", "5"].map((d) => (
-              <button
-                key={d}
-                type="button"
-                role="radio"
-                aria-checked={difficulty === d}
-                aria-label={d ? "Difficulty " + d : "Any difficulty"}
-                className="step"
-                onClick={() => setDifficulty(d)}
-              >
-                {d || "Any"}
-              </button>
-            ))}
-          </div>
-        </div>
-      </aside>
+        </aside>
+      )}
 
       <div>
         {error && (
@@ -134,17 +111,14 @@ export default function QuestionBank({ course, topics, refreshKey, onUploadClick
         )}
         {empty && filtered && (
           <div className="empty">
-            <p className="empty-title">No questions match these filters</p>
+            <p className="empty-title">No questions on this topic yet</p>
             <p>
               <button
                 type="button"
                 className="text-button"
-                onClick={() => {
-                  setTopic("");
-                  setDifficulty("");
-                }}
+                onClick={() => setTopic("")}
               >
-                Clear filters
+                Show all topics
               </button>
             </p>
           </div>
