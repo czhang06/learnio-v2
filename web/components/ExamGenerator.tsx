@@ -85,7 +85,7 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
 
   return (
     <section aria-label="Practice exam">
-      <form onSubmit={submit} className="form no-print">
+      <form onSubmit={submit} className="setup no-print">
         {topics.length > 0 && (
           <fieldset>
             <legend className="label">
@@ -169,8 +169,8 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
 
       <div aria-live="polite">
         {exam && exam.questions.length === 0 && (
-          <div className="sheet sheet-empty">
-            <p>No questions match these settings.</p>
+          <div className="empty">
+            <p className="empty-title">No questions match these settings</p>
             <p>Pick fewer topics or widen the difficulty range, then generate again.</p>
           </div>
         )}
@@ -180,7 +180,7 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
               <h2 className="sheet-title">{exam.course_code} practice exam</h2>
               <p className="sheet-facts">
                 {exam.questions.length} question{exam.questions.length === 1 ? "" : "s"}
-                {total ? ", total: " + formatMarks(total) : ""}
+                {total ? ", " + formatMarks(total) + " in total" : ""}
               </p>
             </header>
             <ol className="questions">

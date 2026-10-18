@@ -69,41 +69,42 @@ export default function QuestionBank({ course, topics, refreshKey, onUploadClick
   const empty = loaded && items.length === 0 && !error;
 
   return (
-    <section aria-label="Questions">
-      <div className="filters">
+    <section aria-label="Questions" className="bank">
+      <aside className="filters" aria-label="Filter questions">
         {topics.length > 0 && (
-          <div className="filter-row">
-            <span id="qb-topic" className="filter-name">
+          <div>
+            <p id="qb-topic" className="filter-name">
               Topic
-            </span>
-            <div className="choices" role="radiogroup" aria-labelledby="qb-topic">
+            </p>
+            <div className="options" role="radiogroup" aria-labelledby="qb-topic">
               {[""].concat(topics).map((t) => (
                 <button
                   key={t}
                   type="button"
                   role="radio"
                   aria-checked={topic === t}
-                  className="choice"
+                  className="option"
                   onClick={() => setTopic(t)}
                 >
-                  {t || "All"}
+                  {t || "All topics"}
                 </button>
               ))}
             </div>
           </div>
         )}
-        <div className="filter-row">
-          <span id="qb-diff" className="filter-name">
+        <div>
+          <p id="qb-diff" className="filter-name">
             Difficulty
-          </span>
-          <div className="choices" role="radiogroup" aria-labelledby="qb-diff">
+          </p>
+          <div className="steps" role="radiogroup" aria-labelledby="qb-diff">
             {["", "1", "2", "3", "4", "5"].map((d) => (
               <button
                 key={d}
                 type="button"
                 role="radio"
                 aria-checked={difficulty === d}
-                className="choice"
+                aria-label={d ? "Difficulty " + d : "Any difficulty"}
+                className="step"
                 onClick={() => setDifficulty(d)}
               >
                 {d || "Any"}
@@ -111,62 +112,64 @@ export default function QuestionBank({ course, topics, refreshKey, onUploadClick
             ))}
           </div>
         </div>
-      </div>
+      </aside>
 
-      {error && (
-        <p className="notice notice-error" role="alert">
-          {error}
-        </p>
-      )}
-
-      {empty && !filtered && (
-        <div className="sheet sheet-empty">
-          <p>This course has no questions yet.</p>
-          <p>
-            <button type="button" className="text-button" onClick={onUploadClick}>
-              Upload a past exam
-            </button>{" "}
-            and its questions will appear here, laid out as they were printed.
+      <div>
+        {error && (
+          <p className="notice notice-error" role="alert">
+            {error}
           </p>
-        </div>
-      )}
-      {empty && filtered && (
-        <div className="sheet sheet-empty">
-          <p>No questions match these filters.</p>
-          <p>
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => {
-                setTopic("");
-                setDifficulty("");
-              }}
-            >
-              Clear filters
-            </button>
-          </p>
-        </div>
-      )}
-
-      {items.length > 0 && (
-        <div className="sheet">
-          <ol className="questions">
-            {items.map((q, i) => (
-              <li key={q.id}>
-                <QuestionItem question={q} number={i + 1} />
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
-
-      <div className="below-sheet" aria-live="polite">
-        {loading && <p className="muted">Loading questions…</p>}
-        {!loading && cursor !== null && (
-          <button type="button" className="btn-quiet" onClick={() => void load(cursor)}>
-            Show more questions
-          </button>
         )}
+
+        {empty && !filtered && (
+          <div className="empty">
+            <p className="empty-title">No questions yet</p>
+            <p>
+              <button type="button" className="text-button" onClick={onUploadClick}>
+                Upload a past exam
+              </button>{" "}
+              and its questions will appear here, laid out as they were printed.
+            </p>
+          </div>
+        )}
+        {empty && filtered && (
+          <div className="empty">
+            <p className="empty-title">No questions match these filters</p>
+            <p>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  setTopic("");
+                  setDifficulty("");
+                }}
+              >
+                Clear filters
+              </button>
+            </p>
+          </div>
+        )}
+
+        {items.length > 0 && (
+          <div className="sheet">
+            <ol className="questions">
+              {items.map((q, i) => (
+                <li key={q.id}>
+                  <QuestionItem question={q} number={i + 1} />
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        <div className="below-sheet" aria-live="polite">
+          {loading && <p className="muted">Loading questions…</p>}
+          {!loading && cursor !== null && (
+            <button type="button" className="btn-quiet" onClick={() => void load(cursor)}>
+              Show more questions
+            </button>
+          )}
+        </div>
       </div>
     </section>
   );

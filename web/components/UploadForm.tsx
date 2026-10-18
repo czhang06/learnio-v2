@@ -74,7 +74,7 @@ export default function UploadForm({ course, clientId, onUploaded, onViewQuestio
   }
 
   return (
-    <section aria-label="Upload">
+    <section aria-label="Upload" className="upload">
       <form onSubmit={submit} className="form">
         <label
           htmlFor="up-file"

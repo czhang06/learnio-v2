@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import CourseRail from "@/components/CourseRail";
+import CourseBar from "@/components/CourseBar";
 import UploadForm from "@/components/UploadForm";
 import QuestionBank from "@/components/QuestionBank";
 import ExamGenerator from "@/components/ExamGenerator";
@@ -26,6 +26,7 @@ export default function Home() {
   const [topics, setTopics] = useState<string[]>([]);
   const [uploads, setUploads] = useState(0);
   const [tab, setTab] = useState<TabId>("questions");
+  const [slow, setSlow] = useState(false);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
@@ -50,6 +51,13 @@ export default function Home() {
       cancelled = true;
     };
   }, []);
+
+  // The free-tier API sleeps when idle; if courses take a while, explain why.
+  useEffect(() => {
+    if (!coursesLoading) return;
+    const timer = setTimeout(() => setSlow(true), 2500);
+    return () => clearTimeout(timer);
+  }, [coursesLoading]);
 
   useEffect(() => {
     if (!selected) {
@@ -90,8 +98,8 @@ export default function Home() {
   const course = courses.find((c) => c.code === selected);
 
   return (
-    <div className="app">
-      <CourseRail
+    <>
+      <CourseBar
         courses={courses}
         selected={selected}
         loading={coursesLoading}
@@ -100,85 +108,90 @@ export default function Home() {
         onCreated={onCreated}
       />
       <main className="main">
-        <div className="main-inner">
-          {!course ? (
-            !coursesLoading && (
-              <div className="sheet sheet-empty">
-                {coursesError ? (
-                  <>
-                    <p>The course list did not load.</p>
-                    <p>{coursesError}. Check that the API is running, then reload this page.</p>
-                  </>
-                ) : (
-                  <>
-                    <p>Start by adding a course.</p>
-                    <p>
-                      Each course keeps its own bank of questions, pulled from the past exams you upload. Use Add a
-                      course in the course list.
-                    </p>
-                  </>
-                )}
-              </div>
-            )
-          ) : (
-            <>
-              <header className="no-print">
-                <h1 className="course-title">{course.code}</h1>
-                {course.name && <p className="course-subtitle">{course.name}</p>}
-              </header>
+        {coursesLoading && slow && (
+          <div className="waking" role="status">
+            <p className="waking-title">Starting the server</p>
+            <p>
+              LearnIO&apos;s API runs on a free tier that sleeps after 15 minutes without visitors. The first request
+              wakes it up, which takes 30 to 50 seconds. This page fills in by itself once it&apos;s ready.
+            </p>
+            <div className="waking-bar" aria-hidden="true">
+              <span />
+            </div>
+          </div>
+        )}
+        {!course ? (
+          !coursesLoading && (
+            <div className="empty">
+              {coursesError ? (
+                <>
+                  <p className="empty-title">The course list didn&apos;t load</p>
+                  <p>{coursesError}. Check that the API is running, then reload this page.</p>
+                </>
+              ) : (
+                <>
+                  <p className="empty-title">Add your first course</p>
+                  <p>
+                    Each course keeps its own bank of questions, pulled from the past exams you upload. Use Add course
+                    in the top bar.
+                  </p>
+                </>
+              )}
+            </div>
+          )
+        ) : (
+          <>
+            <header className="course-head no-print">
+              <h1 className="course-code">{course.code}</h1>
+              {course.name && <p className="course-name">{course.name}</p>}
+            </header>
 
-              <div className="tabs no-print" role="tablist" aria-label={course.code} onKeyDown={onTabKey}>
-                {TABS.map((t) => (
-                  <button
-                    key={t.id}
-                    ref={(el) => {
-                      tabRefs.current[t.id] = el;
-                    }}
-                    type="button"
-                    role="tab"
-                    id={"tab-" + t.id}
-                    aria-selected={tab === t.id}
-                    aria-controls={"panel-" + t.id}
-                    tabIndex={tab === t.id ? 0 : -1}
-                    className="tab"
-                    onClick={() => setTab(t.id)}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
+            <div className="tabs no-print" role="tablist" aria-label={course.code} onKeyDown={onTabKey}>
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  ref={(el) => {
+                    tabRefs.current[t.id] = el;
+                  }}
+                  type="button"
+                  role="tab"
+                  id={"tab-" + t.id}
+                  aria-selected={tab === t.id}
+                  aria-controls={"panel-" + t.id}
+                  tabIndex={tab === t.id ? 0 : -1}
+                  className="tab"
+                  onClick={() => setTab(t.id)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
 
-              {/* Panels stay mounted so a generated exam survives a look at the bank. */}
-              <div
-                role="tabpanel"
-                id="panel-questions"
-                aria-labelledby="tab-questions"
-                hidden={tab !== "questions"}
-                className="no-print"
-              >
-                <QuestionBank course={selected} topics={topics} refreshKey={uploads} onUploadClick={showUpload} />
-              </div>
-              <div role="tabpanel" id="panel-practice" aria-labelledby="tab-practice" hidden={tab !== "practice"}>
-                <ExamGenerator course={selected} topics={topics} clientId={clientId} />
-              </div>
-              <div
-                role="tabpanel"
-                id="panel-upload"
-                aria-labelledby="tab-upload"
-                hidden={tab !== "upload"}
-                className="no-print"
-              >
-                <UploadForm
-                  course={selected}
-                  clientId={clientId}
-                  onUploaded={onUploaded}
-                  onViewQuestions={showQuestions}
-                />
-              </div>
-            </>
-          )}
-        </div>
+            {/* Panels stay mounted so a generated exam survives a look at the bank. */}
+            <div
+              role="tabpanel"
+              id="panel-questions"
+              aria-labelledby="tab-questions"
+              hidden={tab !== "questions"}
+              className="no-print"
+            >
+              <QuestionBank course={selected} topics={topics} refreshKey={uploads} onUploadClick={showUpload} />
+            </div>
+            <div role="tabpanel" id="panel-practice" aria-labelledby="tab-practice" hidden={tab !== "practice"}>
+              <ExamGenerator course={selected} topics={topics} clientId={clientId} />
+            </div>
+            <div
+              role="tabpanel"
+              id="panel-upload"
+              aria-labelledby="tab-upload"
+              hidden={tab !== "upload"}
+              className="no-print"
+            >
+              <UploadForm course={selected} clientId={clientId} onUploaded={onUploaded} onViewQuestions={showQuestions} />
+            </div>
+          </>
+        )}
       </main>
-    </div>
+    </>
   );
 }
