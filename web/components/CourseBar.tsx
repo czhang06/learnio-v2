@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { FormEvent } from "react";
 import { createCourse, errorMessage } from "@/lib/api";
 import type { Course } from "@/lib/api";
@@ -68,6 +69,11 @@ export default function CourseBar({ courses, selected, loading, error, onSelect,
             ))}
           </ul>
         </nav>
+
+        <Link href="/guide" className="topbar-link">
+          <span className="wide-only">How it works</span>
+          <span className="narrow-only">Help</span>
+        </Link>
 
         <div className="add">
           <button
