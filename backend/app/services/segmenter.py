@@ -19,15 +19,42 @@ from ..config import settings
 #   - a bare number with a separator: "1." / "2)" / "3:"
 #   - a bare number followed by a mark count: "4 (10 marks)"
 # A plain number needs the separator or the mark count so that "2004" in a
-# header line does not start a question.
+# header line does not start a question. Any of these may be preceded by the
+# question's marks, as many exams print them in the margin: "(10 points) 1.",
+# "[9] 1.", "15 marks 1.". Those are captured so they stay with the question.
+_LEADING_MARKS = (
+    r"(?P<marks>"
+    r"[\(\[][ \t]*\d{1,3}(?:[ \t]*(?:marks?|points?|pts?))?[ \t]*[\)\]]"
+    r"|\d{1,3}[ \t]*(?:marks?|points?|pts?)\b"
+    r")[ \t]*"
+)
 _QUESTION_START = re.compile(
-    r"(?:^|\f)[ \t\f]*(?:"
+    r"(?:^|\f)[ \t\f]*(?:" + _LEADING_MARKS + r")?(?:"
     r"(?:question|problem)\s*\d{1,3}\b[ \t]*[\.\):]?"
     r"|\d{1,3}[\.\):](?=\s)"
     r"|\d{1,3}(?=[ \t]*[\(\[][ \t]*\d+[ \t]*(?:marks?|points?|pts?)\b)"
     r")\s*",
     re.IGNORECASE | re.MULTILINE,
 )
+_MARK_COUNT = re.compile(r"(\d{1,3})[ \t]*(marks?|points?|pts?)", re.IGNORECASE)
+# Running headers and footers repeated on every page: "MATH 302 Page 3 of 12".
+_PAGE_LINE = re.compile(r"^[^\n]*\bpage\s+\d+\s+of\s+\d+\b[^\n]*$", re.IGNORECASE | re.MULTILINE)
+# Numbered items that are exam instructions rather than questions: the
+# university's rules for formal examinations on the cover page, and the usual
+# "answer all questions" notes. Only unmarked items are dropped, so a real
+# question that happens to use one of these phrases survives if it has marks.
+# Words are joined by \s+ because PDFs often space them with non-breaking spaces.
+_INSTRUCTION = re.compile(
+    r"\bcandidates?\b.{0,200}?\b(?:invigilators?|examination\s+room|examiners?|AMS\s+card|"
+    r"library\s+card|examination\s+(?:material|papers?|rules)|dishonest)"
+    r"|\bsmoking\s+is\s+not\s+permitted\b"
+    r"|\banswer\s+all\s+(?:the\s+)?questions\b"
+    r"|\bwrite\s+your\s+(?:name|student)"
+    r"|\byou\s+have\s+\d+\s+minutes\b"
+    r"|\bpoint\s+form\b",
+    re.IGNORECASE | re.DOTALL,
+)
+_MARKS_ANYWHERE = re.compile(r"[\(\[\{]\s*\d{1,3}\s*(?:marks?|points?|pts?)\b", re.IGNORECASE)
 # Sign-offs after the last question: "--- The End ---", "Good luck!".
 _SIGN_OFF = re.compile(
     r"(?:\s*(?:-{2,}\s*(?:the\s+)?end(?:\s+of\s+\w+)?\s*-{2,}|good\s+luck[!.]*))+\s*$",
@@ -72,7 +99,18 @@ def text_hash(text: str) -> str:
     return hashlib.sha256(normalize(text).lower().encode()).hexdigest()
 
 
+def _marks_prefix(marks: str | None) -> str:
+    """Restate margin marks the way a question body conventionally opens."""
+    if not marks:
+        return ""
+    count = _MARK_COUNT.search(marks)
+    if count:
+        return "(" + count.group(1) + " " + count.group(2).lower() + ") "
+    return marks.strip() + " "  # "[9]": a count with no unit, kept as printed
+
+
 def split_questions(raw: str) -> list[str]:
+    raw = _PAGE_LINE.sub("", raw)
     matches = list(_QUESTION_START.finditer(raw))
     if not matches:
         return []
@@ -81,6 +119,10 @@ def split_questions(raw: str) -> list[str]:
         end = matches[i + 1].start() if i + 1 < len(matches) else len(raw)
         hang = m.end() - (max(raw.rfind("\n", 0, m.end()), raw.rfind("\f", 0, m.end())) + 1)
         body = clean_layout(_SIGN_OFF.sub("", raw[m.end():end]), hang)
+        marks = _marks_prefix(m.group("marks"))
+        if not marks and _INSTRUCTION.search(body) and not _MARKS_ANYWHERE.search(body):
+            continue
+        body = marks + body
         if len(normalize(body)) >= _MIN_CHARS:
             questions.append(body)
     return questions

@@ -122,6 +122,52 @@ def test_trailing_sign_off_is_stripped():
     ]
 
 
+# Formats seen in real past exams: marks printed in the margin before the
+# question number, a numbered rules page before the first question, and a
+# running footer on every page. The text here is synthetic.
+
+
+def test_split_marks_in_parentheses_before_the_number():
+    raw = f"(10 points) 1. {LONG_A}\n(12 points) 2. {LONG_B}\n"
+    assert segmenter.split_questions(raw) == [f"(10 points) {LONG_A}", f"(12 points) {LONG_B}"]
+
+
+def test_split_bare_mark_count_before_the_number():
+    raw = f"15 marks 1. {LONG_A}\n 8 marks 2. {LONG_B}\n"
+    assert segmenter.split_questions(raw) == [f"(15 marks) {LONG_A}", f"(8 marks) {LONG_B}"]
+
+
+def test_split_bracketed_count_before_the_number_is_kept_as_printed():
+    raw = f"[9] 1. {LONG_A}\n[12] 2. {LONG_B}\n"
+    assert segmenter.split_questions(raw) == [f"[9] {LONG_A}", f"[12] {LONG_B}"]
+
+
+def test_numbered_exam_rules_are_not_questions():
+    raw = (
+        "Rules for formal examinations\n"
+        "1. Each candidate must show a library card to the invigilator when asked.\n"
+        "2. No candidate may enter the examination room after the first half hour.\n"
+        "3. Candidates must not take any examination material out of the room.\n"
+        f"(10 marks) 1. {LONG_A}\n"
+    )
+    assert segmenter.split_questions(raw) == [f"(10 marks) {LONG_A}"]
+
+
+def test_numbered_instructions_are_not_questions_even_with_non_breaking_spaces():
+    raw = "1. Answer\xa0all\xa0the\xa0questions\xa0on\xa0this\xa0paper.\n2. Use point form where it helps.\n" + f"3. {LONG_A}\n"
+    assert segmenter.split_questions(raw) == [LONG_A]
+
+
+def test_marked_question_that_mentions_candidates_is_kept():
+    text = "(5 marks) A candidate key must be minimal. Explain why examiners of a schema care."
+    assert segmenter.split_questions("1. " + text) == [text]
+
+
+def test_page_footers_are_removed_from_question_text():
+    raw = f"1. {LONG_A}\n   2015-12-18 MATH 302 Page 3 of 12\n2. {LONG_B}\n"
+    assert segmenter.split_questions(raw) == [LONG_A, LONG_B]
+
+
 def test_clean_layout_treats_a_page_break_as_a_line_break():
     assert segmenter.clean_layout("first line\fsecond line\n") == "first line\nsecond line"
 
