@@ -108,6 +108,20 @@ export default function Guide() {
           </p>
         </section>
 
+        <section className="guide-section" aria-labelledby="demo-h">
+          <h2 id="demo-h" className="guide-heading">
+            On this demo
+          </h2>
+          <p>
+            The question bank here is curated, so adding courses and uploading are turned off. You can browse the
+            questions and generate practice exams. To try uploading your own exams, run LearnIO locally from the{" "}
+            <a className="text-button" href="https://github.com/czhang06/learnio-v2">
+              GitHub repo
+            </a>
+            .
+          </p>
+        </section>
+
         <section className="guide-section" aria-labelledby="slow-h">
           <h2 id="slow-h" className="guide-heading">
             Why the first load can be slow

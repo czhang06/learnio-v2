@@ -1,4 +1,12 @@
+import { getAdminKey } from "@/lib/adminKey";
+
 const API_URL: string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+/** The saved admin key as a header, for the writes a read-only demo guards. */
+function adminHeaders(): Record<string, string> {
+  const key = getAdminKey();
+  return key ? { "X-Admin-Key": key } : {};
+}
 
 export interface Course {
   id: number;
@@ -90,6 +98,28 @@ export function errorMessage(err: unknown): string {
   return "Something went wrong";
 }
 
+export interface Mode {
+  read_only: boolean;
+}
+
+/** Whether the API is a read-only demo (adding courses and uploads need the admin key). */
+export function getMode(): Promise<Mode> {
+  return request<Mode>("/api/mode");
+}
+
+/** True when the API accepts this admin key. */
+export async function checkAdminKey(key: string): Promise<boolean> {
+  let res: Response;
+  try {
+    res = await fetch(API_URL + "/api/admin/check", { method: "POST", headers: { "X-Admin-Key": key } });
+  } catch {
+    throw new ApiError("Could not reach the API at " + API_URL, 0);
+  }
+  if (res.status === 204) return true;
+  if (res.status === 403) return false;
+  throw new ApiError("Request failed (" + res.status + ")", res.status);
+}
+
 export function listCourses(): Promise<Course[]> {
   return request<Course[]>("/api/courses");
 }
@@ -97,7 +127,7 @@ export function listCourses(): Promise<Course[]> {
 export function createCourse(code: string, name: string, topics: string[]): Promise<Course> {
   return request<Course>("/api/courses", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...adminHeaders() },
     body: JSON.stringify({ code, name, topics }),
   });
 }
@@ -117,7 +147,7 @@ export function uploadDocument(
   form.append("kind", kind);
   form.append("client_id", clientId);
   form.append("file", file);
-  return request<DocumentOut>("/api/documents", { method: "POST", body: form });
+  return request<DocumentOut>("/api/documents", { method: "POST", headers: adminHeaders(), body: form });
 }
 
 export interface QuestionQuery {

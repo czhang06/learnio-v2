@@ -1,6 +1,7 @@
 import random
+import secrets
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
@@ -34,12 +35,31 @@ def get_course(session: Session, code: str) -> Course:
     return course
 
 
+def require_admin(x_admin_key: str | None = Header(None)) -> None:
+    """Reject writes without the admin key, when one is configured."""
+    if settings.admin_key is None:
+        return
+    if x_admin_key is None or not secrets.compare_digest(x_admin_key, settings.admin_key):
+        raise HTTPException(403, "This demo is read-only. Adding courses and uploading need the admin key.")
+
+
 @router.get("/health")
 def health():
     return {"status": "ok"}
 
 
-@router.post("/courses", response_model=CourseOut, status_code=201)
+@router.get("/mode")
+def mode():
+    """Tell the frontend whether to offer course creation and uploads."""
+    return {"read_only": settings.admin_key is not None}
+
+
+@router.post("/admin/check", status_code=204, dependencies=[Depends(require_admin)])
+def check_admin_key():
+    """204 when the X-Admin-Key header is accepted, so the frontend can verify a key once."""
+
+
+@router.post("/courses", response_model=CourseOut, status_code=201, dependencies=[Depends(require_admin)])
 def create_course(body: CourseIn, session: Session = Depends(get_session)):
     if session.scalar(select(Course).where(Course.code == body.code)):
         raise HTTPException(409, "Course already exists")
@@ -101,7 +121,7 @@ def list_questions(
     return QuestionPage(items=items, next_cursor=items[-1].id if len(items) == limit else None)
 
 
-@router.post("/documents", response_model=DocumentOut, status_code=201)
+@router.post("/documents", response_model=DocumentOut, status_code=201, dependencies=[Depends(require_admin)])
 async def upload_document(
     course_code: str = Form(...),
     kind: str = Form("exam"),

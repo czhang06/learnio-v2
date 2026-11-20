@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import CourseBar from "@/components/CourseBar";
 import UploadForm from "@/components/UploadForm";
+import AdminUnlock from "@/components/AdminUnlock";
 import QuestionBank from "@/components/QuestionBank";
 import ExamGenerator from "@/components/ExamGenerator";
-import { errorMessage, listCourses, listTopics } from "@/lib/api";
+import { errorMessage, getMode, listCourses, listTopics } from "@/lib/api";
 import type { Course } from "@/lib/api";
+import { getAdminKey } from "@/lib/adminKey";
 import { getClientId } from "@/lib/clientId";
 
 const TABS = [
@@ -27,11 +29,31 @@ export default function Home() {
   const [uploads, setUploads] = useState(0);
   const [tab, setTab] = useState<TabId>("questions");
   const [slow, setSlow] = useState(false);
+  // null until the API says; treated as read-only meanwhile so write controls never flash.
+  const [readOnly, setReadOnly] = useState<boolean | null>(null);
+  const [hasKey, setHasKey] = useState(false);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
     setClientId(getClientId());
+    setHasKey(getAdminKey() !== null);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getMode()
+      .then((m) => {
+        if (!cancelled) setReadOnly(m.read_only);
+      })
+      .catch(() => {
+        if (!cancelled) setReadOnly(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const canEdit = readOnly === false || hasKey;
 
   useEffect(() => {
     let cancelled = false;
@@ -106,6 +128,7 @@ export default function Home() {
         error={coursesError}
         onSelect={setSelected}
         onCreated={onCreated}
+        canEdit={canEdit}
       />
       <main className="main">
         {coursesLoading && slow && (
@@ -130,10 +153,10 @@ export default function Home() {
                 </>
               ) : (
                 <>
-                  <p className="empty-title">Add your first course</p>
+                  <p className="empty-title">{canEdit ? "Add your first course" : "No courses yet"}</p>
                   <p>
-                    Each course keeps its own bank of questions, pulled from the past exams you upload. Use Add course
-                    in the top bar.
+                    Each course keeps its own bank of questions, pulled from the past exams you upload.
+                    {canEdit ? " Use Add course in the top bar." : ""}
                   </p>
                 </>
               )}
@@ -187,7 +210,11 @@ export default function Home() {
               hidden={tab !== "upload"}
               className="no-print"
             >
-              <UploadForm course={selected} clientId={clientId} onUploaded={onUploaded} onViewQuestions={showQuestions} />
+              {canEdit ? (
+                <UploadForm course={selected} clientId={clientId} onUploaded={onUploaded} onViewQuestions={showQuestions} />
+              ) : (
+                <AdminUnlock onUnlocked={() => setHasKey(true)} />
+              )}
             </div>
           </>
         )}

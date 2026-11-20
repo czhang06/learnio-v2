@@ -13,9 +13,11 @@ interface Props {
   error: string | null;
   onSelect: (code: string) => void;
   onCreated: (course: Course) => void;
+  /** False on the read-only demo: the Add course control is hidden. */
+  canEdit: boolean;
 }
 
-export default function CourseBar({ courses, selected, loading, error, onSelect, onCreated }: Props) {
+export default function CourseBar({ courses, selected, loading, error, onSelect, onCreated, canEdit }: Props) {
   const [adding, setAdding] = useState(false);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -75,82 +77,84 @@ export default function CourseBar({ courses, selected, loading, error, onSelect,
           <span className="narrow-only">Help</span>
         </Link>
 
-        <div className="add">
-          <button
-            type="button"
-            className="btn-quiet btn-small"
-            aria-expanded={adding}
-            aria-controls="add-course"
-            onClick={() => setAdding((a) => !a)}
-          >
-            Add<span className="wide-only">&nbsp;course</span>
-          </button>
-          {adding && (
-            <form
-              id="add-course"
-              onSubmit={submit}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") setAdding(false);
-              }}
-              className="add-panel"
-              aria-label="Add a course"
+        {canEdit && (
+          <div className="add">
+            <button
+              type="button"
+              className="btn-quiet btn-small"
+              aria-expanded={adding}
+              aria-controls="add-course"
+              onClick={() => setAdding((a) => !a)}
             >
-              <p className="add-panel-title">Add a course</p>
-              <div>
-                <label htmlFor="new-code" className="label">
-                  Course code
-                </label>
-                <input
-                  id="new-code"
-                  className="field"
-                  required
-                  autoFocus
-                  maxLength={32}
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="CPSC 304"
-                />
-              </div>
-              <div>
-                <label htmlFor="new-name" className="label">
-                  Name <span className="hint">optional</span>
-                </label>
-                <input
-                  id="new-name"
-                  className="field"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Introduction to Databases"
-                />
-              </div>
-              <div>
-                <label htmlFor="new-topics" className="label">
-                  Topics <span className="hint">separated by commas</span>
-                </label>
-                <input
-                  id="new-topics"
-                  className="field"
-                  value={topics}
-                  onChange={(e) => setTopics(e.target.value)}
-                  placeholder="SQL, normalization, indexing"
-                />
-              </div>
-              {formError && (
-                <p className="notice notice-error" role="alert">
-                  {formError}
-                </p>
-              )}
-              <div className="form-actions">
-                <button type="submit" className="btn" disabled={busy || code.trim() === ""}>
-                  {busy ? "Adding…" : "Add course"}
-                </button>
-                <button type="button" className="text-button" onClick={() => setAdding(false)}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
+              Add<span className="wide-only">&nbsp;course</span>
+            </button>
+            {adding && (
+              <form
+                id="add-course"
+                onSubmit={submit}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setAdding(false);
+                }}
+                className="add-panel"
+                aria-label="Add a course"
+              >
+                <p className="add-panel-title">Add a course</p>
+                <div>
+                  <label htmlFor="new-code" className="label">
+                    Course code
+                  </label>
+                  <input
+                    id="new-code"
+                    className="field"
+                    required
+                    autoFocus
+                    maxLength={32}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="CPSC 304"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="new-name" className="label">
+                    Name <span className="hint">optional</span>
+                  </label>
+                  <input
+                    id="new-name"
+                    className="field"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Introduction to Databases"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="new-topics" className="label">
+                    Topics <span className="hint">separated by commas</span>
+                  </label>
+                  <input
+                    id="new-topics"
+                    className="field"
+                    value={topics}
+                    onChange={(e) => setTopics(e.target.value)}
+                    placeholder="SQL, normalization, indexing"
+                  />
+                </div>
+                {formError && (
+                  <p className="notice notice-error" role="alert">
+                    {formError}
+                  </p>
+                )}
+                <div className="form-actions">
+                  <button type="submit" className="btn" disabled={busy || code.trim() === ""}>
+                    {busy ? "Adding…" : "Add course"}
+                  </button>
+                  <button type="button" className="text-button" onClick={() => setAdding(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );

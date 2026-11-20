@@ -695,6 +695,16 @@ body {
     font-weight: 600;
     overflow-wrap: anywhere;
   }
+  .unlock {
+    display: grid;
+    gap: 0.5rem;
+    max-width: 26rem;
+    margin-top: 1.25rem;
+  }
+  .unlock-row {
+    display: flex;
+    gap: 0.5rem;
+  }
   .sr-only-input {
     position: absolute;
     width: 1px;

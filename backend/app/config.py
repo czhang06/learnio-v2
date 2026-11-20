@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.0-flash"
     max_upload_mb: int = 20
 
+    # When set, adding courses and uploading PDFs require this value in the
+    # X-Admin-Key header, so a public demo stays read-only for visitors.
+    # Unset (local development, tests) leaves both open.
+    admin_key: str | None = None
+
     # Comma-separated browser origins allowed to call the API. "*" is
     # acceptable for a public demo with no auth or cookies; narrow it to the
     # deployed frontend origin the moment either of those changes.

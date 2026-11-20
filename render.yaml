@@ -35,3 +35,8 @@ services:
       # falls back to keyword matching and still works end to end.
       - key: GEMINI_API_KEY
         sync: false
+      # Makes the public demo read-only: adding courses and uploading PDFs
+      # need this value as the X-Admin-Key header (the site asks for it once
+      # under Upload). Use a long random string. Leave unset to allow writes.
+      - key: ADMIN_KEY
+        sync: false
