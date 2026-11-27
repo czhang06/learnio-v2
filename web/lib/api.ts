@@ -25,11 +25,19 @@ export interface QuestionPage {
   next_cursor: number | null;
 }
 
+export type DocumentStatus = "queued" | "processing" | "needs_review" | "published" | "failed";
+
 export interface DocumentOut {
   id: number;
   filename: string;
-  status: string;
+  status: DocumentStatus;
   question_count: number;
+  error: string | null;
+}
+
+/** True once ingestion has stopped changing the document. */
+export function isSettled(doc: DocumentOut): boolean {
+  return doc.status === "published" || doc.status === "failed" || doc.status === "needs_review";
 }
 
 export interface Exam {
@@ -148,6 +156,24 @@ export function uploadDocument(
   form.append("client_id", clientId);
   form.append("file", file);
   return request<DocumentOut>("/api/documents", { method: "POST", headers: adminHeaders(), body: form });
+}
+
+export function getDocument(id: number): Promise<DocumentOut> {
+  return request<DocumentOut>("/api/documents/" + id);
+}
+
+/** Poll an uploaded document until its ingestion job finishes or `timeoutMs` passes. */
+export async function waitForDocument(
+  doc: DocumentOut,
+  { intervalMs = 1500, timeoutMs = 180_000 }: { intervalMs?: number; timeoutMs?: number } = {}
+): Promise<DocumentOut> {
+  const deadline = Date.now() + timeoutMs;
+  let current = doc;
+  while (!isSettled(current) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    current = await getDocument(current.id);
+  }
+  return current;
 }
 
 export interface QuestionQuery {
