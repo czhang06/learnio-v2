@@ -1,5 +1,5 @@
 from app.config import settings
-from app.services import segmenter
+from app.ingest import segmenter
 
 LONG_A = "Explain the difference between a stack and a queue in detail."
 LONG_B = "Describe how binary search works and state its complexity."

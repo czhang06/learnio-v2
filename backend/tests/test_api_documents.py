@@ -3,7 +3,7 @@ from sqlalchemy import func, select
 
 from app.config import settings
 from app.models import Document, Question, UsageEvent
-from app.services import segmenter
+from app.ingest import segmenter
 
 QUESTIONS = [
     "Explain how recursion works using a small example.",

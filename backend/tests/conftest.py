@@ -17,7 +17,7 @@ from app import models  # noqa: E402,F401  (registers tables on Base.metadata)
 from app.db import Base, get_session  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Course, Question, Topic  # noqa: E402
-from app.services.segmenter import text_hash  # noqa: E402
+from app.ingest.segmenter import text_hash  # noqa: E402
 
 
 @pytest.fixture(scope="session")
