@@ -25,7 +25,7 @@ def test_topics_are_returned_as_name_strings(client, make_course, add_questions)
     add_questions(course, 1, topics=["arrays", "graphs"])
     item = _get(client)["items"][0]
     assert sorted(item["topics"]) == ["arrays", "graphs"]
-    assert set(item) >= {"id", "text", "difficulty", "topics"}
+    assert set(item) >= {"id", "text", "topics"}
 
 
 def test_default_order_is_by_id(client, make_course, add_questions):
@@ -50,21 +50,8 @@ def test_filter_by_topic(client, make_course, add_questions):
     assert _ids(_get(client, topic="arrays")) == arrays
 
 
-def test_filter_by_difficulty(client, make_course, add_questions):
-    course = make_course()
-    add_questions(course, 2, difficulty=2)
-    hard = add_questions(course, 3, difficulty=5)
-    page = _get(client, difficulty=5)
-    assert _ids(page) == hard
-    assert {q["difficulty"] for q in page["items"]} == {5}
 
 
-def test_filter_by_topic_and_difficulty(client, make_course, add_questions):
-    course = make_course()
-    add_questions(course, 2, topics=["arrays"], difficulty=1)
-    wanted = add_questions(course, 2, topics=["arrays"], difficulty=4)
-    add_questions(course, 2, topics=["graphs"], difficulty=4)
-    assert _ids(_get(client, topic="arrays", difficulty=4)) == wanted
 
 
 def test_unknown_topic_returns_empty(client, make_course, add_questions):
@@ -118,11 +105,6 @@ def test_after_returns_only_larger_ids(client, make_course, add_questions):
     assert _ids(page) == ids[3:]
 
 
-def test_after_with_difficulty_filter(client, make_course, add_questions):
-    course = make_course()
-    ids = add_questions(course, 6, difficulty=[1, 2])
-    page = _get(client, after=ids[0], difficulty=2, limit=100)
-    assert _ids(page) == [ids[1], ids[3], ids[5]]
 
 
 def test_walking_cursors_visits_everything_once(client, make_course, add_questions):

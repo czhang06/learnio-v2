@@ -7,7 +7,6 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    SmallInteger,
     String,
     Table,
     Column,
@@ -114,7 +113,6 @@ class Question(Base):
     document_id: Mapped[int | None] = mapped_column(ForeignKey("documents.id", ondelete="SET NULL"))
     text: Mapped[str] = mapped_column(Text)
     text_hash: Mapped[str] = mapped_column(String(64))
-    difficulty: Mapped[int] = mapped_column(SmallInteger, default=3)
     rand: Mapped[float] = mapped_column(Float(53), server_default=func.random())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

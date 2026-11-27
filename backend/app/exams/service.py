@@ -21,10 +21,7 @@ def generate_exam(session: Session, body: ExamRequest, client_id: str = "") -> E
     base = (
         select(Question)
         .options(selectinload(Question.topics))
-        .where(
-            Question.course_id == course.id,
-            Question.difficulty.between(body.min_difficulty, body.max_difficulty),
-        )
+        .where(Question.course_id == course.id)
     )
     if body.topics:
         topic_ids = select(Topic.id).where(Topic.course_id == course.id, Topic.name.in_(body.topics))

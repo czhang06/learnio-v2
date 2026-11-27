@@ -81,15 +81,14 @@ def make_course(db_session):
 
 @pytest.fixture
 def add_questions(db_session):
-    """add_questions(course, count, topics=(), difficulty=3) -> list of question ids.
+    """add_questions(course, count, topics=()) -> list of question ids.
 
-    `difficulty` may be an int or a list that is cycled over the new questions.
     Every question gets unique text, so nothing collides on (course_id, text_hash).
     Returned ids are in insertion (= ascending id) order.
     """
     counter = itertools.count(1)
 
-    def _add(course, count=1, *, topics=(), difficulty=3):
+    def _add(course, count=1, *, topics=()):
         topic_rows = []
         if topics:
             topic_rows = list(
@@ -98,7 +97,6 @@ def add_questions(db_session):
                 )
             )
             assert len(topic_rows) == len(set(topics)), "unknown topic in fixture call"
-        difficulties = itertools.cycle([difficulty] if isinstance(difficulty, int) else difficulty)
         rows = []
         for _ in range(count):
             body = f"Seeded question number {next(counter)} about something testable"
@@ -107,7 +105,6 @@ def add_questions(db_session):
                     course_id=course.id,
                     text=body,
                     text_hash=text_hash(body),
-                    difficulty=next(difficulties),
                     topics=list(topic_rows),
                 )
             )

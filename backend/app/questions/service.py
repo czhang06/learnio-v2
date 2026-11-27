@@ -7,7 +7,7 @@ from .schemas import QuestionOut, QuestionPage
 
 
 def to_out(q: Question) -> QuestionOut:
-    return QuestionOut(id=q.id, text=q.text, difficulty=q.difficulty, topics=[t.name for t in q.topics])
+    return QuestionOut(id=q.id, text=q.text, topics=[t.name for t in q.topics])
 
 
 def list_questions(
@@ -15,7 +15,6 @@ def list_questions(
     course_code: str,
     *,
     topic: str | None,
-    difficulty: int | None,
     offset: int,
     after: int | None,
     limit: int,
@@ -37,8 +36,6 @@ def list_questions(
     else:
         stmt = select(Question).where(Question.course_id == course.id).order_by(Question.id)
         id_col = Question.id
-    if difficulty is not None:
-        stmt = stmt.where(Question.difficulty == difficulty)
     stmt = stmt.where(id_col > after) if after is not None else stmt.offset(offset)
     rows = session.scalars(stmt.options(selectinload(Question.topics)).limit(limit)).all()
     items = [to_out(q) for q in rows]

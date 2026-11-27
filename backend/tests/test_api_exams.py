@@ -42,13 +42,6 @@ def test_exam_with_empty_pool(client, make_course):
     assert r.json()["questions"] == []
 
 
-def test_exam_respects_difficulty_range(client, make_course, add_questions):
-    course = make_course()
-    add_questions(course, 20, difficulty=[1, 2, 3, 4, 5])
-    r = _exam(client, num_questions=100, min_difficulty=2, max_difficulty=4)
-    difficulties = {q["difficulty"] for q in r.json()["questions"]}
-    assert difficulties <= {2, 3, 4}
-    assert len(r.json()["questions"]) == 12  # 4 each of 2, 3, 4
 
 
 def test_exam_respects_topic_filter(client, make_course, add_questions):
@@ -70,13 +63,6 @@ def test_exam_with_several_topics_has_no_duplicates(client, make_course, add_que
     assert len(ids) == len(set(ids))
 
 
-def test_exam_combines_topic_and_difficulty(client, make_course, add_questions):
-    course = make_course()
-    add_questions(course, 3, topics=["arrays"], difficulty=1)
-    wanted = add_questions(course, 3, topics=["arrays"], difficulty=5)
-    add_questions(course, 3, topics=["graphs"], difficulty=5)
-    r = _exam(client, num_questions=100, topics=["arrays"], min_difficulty=4)
-    assert sorted(_ids(r)) == wanted
 
 
 def test_exam_only_uses_questions_of_its_course(client, make_course, add_questions):

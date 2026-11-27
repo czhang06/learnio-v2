@@ -40,3 +40,17 @@ services:
       # under Upload). Use a long random string. Leave unset to allow writes.
       - key: ADMIN_KEY
         sync: false
+      # Uploaded PDFs are kept so ingestion can be re-run. The instance disk
+      # is wiped on every deploy, so production stores them in Cloudflare R2
+      # (free tier: 10 GB). Create a bucket and an R2 API token, then set:
+      - key: STORAGE_BACKEND
+        value: r2
+      - key: R2_BUCKET
+        sync: false
+      # https://<account id>.r2.cloudflarestorage.com
+      - key: R2_ENDPOINT_URL
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false

@@ -5,7 +5,6 @@ class QuestionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     text: str
-    difficulty: int
     topics: list[str]
 
 
