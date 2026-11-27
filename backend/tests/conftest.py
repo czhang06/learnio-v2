@@ -1,10 +1,17 @@
 """Shared fixtures. Runs against a real PostgreSQL given by DATABASE_URL."""
 
 import os
+import tempfile
 
 DATABASE_URL = os.environ.setdefault(
     "DATABASE_URL", "postgresql+psycopg://learnio:learnio@localhost:5432/learnio"
 )
+# No background loop in tests: uploads are processed inside the request, and
+# tests of the worker itself call worker.run_once() directly.
+os.environ["RUN_WORKER"] = "false"
+os.environ["INGEST_INLINE"] = "true"
+os.environ["STORAGE_BACKEND"] = "local"
+os.environ["STORAGE_DIR"] = tempfile.mkdtemp(prefix="learnio-uploads-")
 
 import itertools  # noqa: E402
 

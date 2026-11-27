@@ -59,7 +59,7 @@ def test_locked_demo_rejects_uploads_without_the_key(client, make_course, locked
 def test_locked_demo_accepts_uploads_with_the_key(client, make_course, locked):
     make_course()
     r = upload(client, **{"X-Admin-Key": "s3cret"})
-    assert r.status_code == 201, r.text
+    assert r.status_code == 202, r.text
     assert r.json()["question_count"] == 1
 
 

@@ -45,6 +45,17 @@ class Settings(BaseSettings):
     r2_access_key_id: str | None = None
     r2_secret_access_key: str | None = None
 
+    # Background ingestion. The worker loop runs inside the API process.
+    run_worker: bool = True
+    worker_poll_seconds: float = 2.0
+    job_timeout_seconds: int = 600  # a job processing longer than this is claimed again
+    max_attempts: int = 3
+    # Publish straight after ingestion instead of waiting in needs_review.
+    # On until the admin review screen exists.
+    auto_publish: bool = True
+    # Process uploads inside the request, before responding (tests only).
+    ingest_inline: bool = False
+
     @property
     def sqlalchemy_url(self) -> str:
         """The database URL with a driver SQLAlchemy can actually load."""

@@ -39,10 +39,10 @@ def count(db_session, model):
 def test_upload_stores_questions(client, make_course, db_session):
     make_course()
     r = upload(client, make_pdf())
-    assert r.status_code == 201, r.text
+    assert r.status_code == 202, r.text
     body = r.json()
     assert body["question_count"] == 3
-    assert body["status"] == "done"
+    assert body["status"] == "published"
     assert body["filename"] == "exam.pdf"
     assert count(db_session, Question) == 3
 
@@ -69,7 +69,7 @@ def test_reupload_same_pdf_stores_no_new_questions(client, make_course, db_sessi
     pdf = make_pdf()
     assert upload(client, pdf).json()["question_count"] == 3
     second = upload(client, pdf)
-    assert second.status_code == 201
+    assert second.status_code == 202
     assert second.json()["question_count"] == 0
     assert count(db_session, Question) == 3
 
@@ -127,13 +127,15 @@ def test_upload_writes_document_and_usage_event(client, make_course, db_session)
     assert (event.kind, event.client_id) == ("upload", "abc")
 
 
-def test_pdf_without_questions_is_rejected_and_marked_empty(client, make_course, db_session):
+def test_pdf_without_questions_fails_with_a_message(client, make_course, db_session):
     make_course()
     r = upload(client, make_pdf(["just a plain sentence with no numbering"], style="{q}"))
-    assert r.status_code == 422
-    assert "Question 3" in r.json()["detail"]
+    assert r.status_code == 202
+    body = r.json()
+    assert (body["status"], body["question_count"]) == ("failed", 0)
+    assert "Question 3" in body["error"]
     doc = db_session.scalars(select(Document)).one()
-    assert (doc.status, doc.question_count) == ("empty", 0)
+    assert doc.status == "failed"
 
 
 def test_non_pdf_filename_returns_415(client, make_course):

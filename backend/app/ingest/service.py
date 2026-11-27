@@ -1,72 +1,103 @@
+import fitz  # PyMuPDF
 from fastapi import HTTPException
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..deps import get_course
-from ..models import Document, Question, UsageEvent, question_topics
-from . import segmenter
-from .pdf_extract import extract_text
+from ..models import Document, DocumentStatus, Question, Topic, UsageEvent, question_topics
+from .storage import get_storage
+
+
+def get_document(session: Session, document_id: int) -> Document:
+    doc = session.get(Document, document_id)
+    if doc is None:
+        raise HTTPException(404, f"Unknown document {document_id}")
+    return doc
+
+
+def _check_pdf(data: bytes) -> None:
+    """Reject unreadable files now, so the uploader hears about them immediately."""
+    try:
+        with fitz.open(stream=data, filetype="pdf") as pdf:
+            if pdf.needs_pass:
+                raise ValueError("the PDF is password protected")
+    except Exception as exc:
+        raise HTTPException(422, f"Could not read PDF: {exc}") from exc
 
 
 def upload_document(
     session: Session, *, course_code: str, kind: str, client_id: str, filename: str | None, data: bytes
 ) -> Document:
+    """Validate and store the PDF, then queue it for the worker."""
     if len(data) > settings.max_upload_mb * 1024 * 1024:
         raise HTTPException(413, "File too large")
     if not (filename or "").lower().endswith(".pdf"):
         raise HTTPException(415, "Only PDF files are supported")
-
     course = get_course(session, course_code)
-    doc = Document(course_id=course.id, filename=filename or "upload.pdf", kind=kind, status="processing")
+    _check_pdf(data)
+
+    doc = Document(course_id=course.id, filename=filename or "upload.pdf", kind=kind, status=DocumentStatus.QUEUED)
     session.add(doc)
     session.flush()
+    doc.storage_key = f"documents/{doc.id}.pdf"
+    get_storage().put(doc.storage_key, data)
+    session.add(UsageEvent(kind="upload", client_id=client_id))
+    session.commit()
 
-    try:
-        text = extract_text(data)
-    except Exception as exc:  # corrupt or encrypted PDF
-        doc.status = "failed"
-        session.commit()
-        raise HTTPException(422, f"Could not read PDF: {exc}") from exc
+    if settings.ingest_inline:
+        from .worker import process_document
 
-    pieces = segmenter.split_questions(text)
-    if not pieces:
-        doc.status = "empty"
-        session.commit()
-        raise HTTPException(
-            422,
-            "No questions found in this PDF. Questions must start on their own line with a heading "
-            'like "1.", "2)", "Question 3" or "4 (10 marks)".',
-        )
-    topic_names = [t.name for t in course.topics]
-    labels = segmenter.tag_topics_with_llm(pieces, topic_names)
-    topic_ids = {t.name: t.id for t in course.topics}
+        process_document(session, doc)
+    return doc
 
+
+def publish_document(session: Session, doc: Document) -> Document:
+    """Copy a reviewed document's drafts into the question bank.
+
+    A draft whose text is already in the course is not stored again, but its
+    text replaces the stored one: same words, possibly better layout, so
+    re-uploading a PDF refreshes questions stored before line breaks were kept.
+    """
+    if doc.status != DocumentStatus.NEEDS_REVIEW:
+        raise HTTPException(409, f"Only documents awaiting review can be published (this one is {doc.status})")
+    topic_ids = dict(session.execute(select(Topic.name, Topic.id).where(Topic.course_id == doc.course_id)).all())
     stored = 0
-    for piece, names in zip(pieces, labels):
+    for draft in doc.drafts:
         row = session.execute(
             pg_insert(Question)
-            .values(course_id=course.id, document_id=doc.id, text=piece, text_hash=segmenter.text_hash(piece))
+            .values(course_id=doc.course_id, document_id=doc.id, text=draft.text, text_hash=draft.text_hash)
             .on_conflict_do_nothing(index_elements=["course_id", "text_hash"])
             .returning(Question.id)
         ).first()
-        if row is None:  # duplicate question already in this course
-            # Same words, possibly better layout: re-uploading a PDF refreshes
-            # questions stored before line breaks were kept.
+        if row is None:  # already in this course
             session.execute(
                 update(Question)
-                .where(Question.course_id == course.id, Question.text_hash == segmenter.text_hash(piece))
-                .values(text=piece)
+                .where(Question.course_id == doc.course_id, Question.text_hash == draft.text_hash)
+                .values(text=draft.text)
             )
             continue
         stored += 1
-        for name in names:
+        for name in draft.topic_names:
             if name in topic_ids:
                 session.execute(question_topics.insert().values(question_id=row[0], topic_id=topic_ids[name]))
-
+    doc.drafts.clear()
     doc.question_count = stored
-    doc.status = "done"
-    session.add(UsageEvent(kind="upload", client_id=client_id))
+    doc.status = DocumentStatus.PUBLISHED
+    session.commit()
+    return doc
+
+
+def retry_document(session: Session, doc: Document) -> Document:
+    """Put a failed document back in the queue, to run again on its stored PDF."""
+    if doc.status != DocumentStatus.FAILED:
+        raise HTTPException(409, f"Only failed documents can be retried (this one is {doc.status})")
+    if doc.storage_key is None:
+        raise HTTPException(409, "This document was uploaded before PDFs were stored; upload it again.")
+    doc.status = DocumentStatus.QUEUED
+    doc.error = None
+    doc.attempts = 0
+    doc.locked_at = None
     session.commit()
     return doc
