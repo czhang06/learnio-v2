@@ -36,6 +36,15 @@ class Settings(BaseSettings):
     # deployed frontend origin the moment either of those changes.
     allowed_origins: str = "*"
 
+    # Where uploaded PDFs are kept: "local" (a directory, for development) or
+    # "r2" (Cloudflare R2 through its S3 API, for production).
+    storage_backend: str = "local"
+    storage_dir: str = "uploads"
+    r2_bucket: str | None = None
+    r2_endpoint_url: str | None = None  # https://<account id>.r2.cloudflarestorage.com
+    r2_access_key_id: str | None = None
+    r2_secret_access_key: str | None = None
+
     @property
     def sqlalchemy_url(self) -> str:
         """The database URL with a driver SQLAlchemy can actually load."""
