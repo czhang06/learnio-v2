@@ -1,0 +1,66 @@
+{
+  "pdf": "6-034-artificial-intelligence-fall-2010/final-2008.pdf",
+  "notes": "Headed \"Quiz N, Question M\" and \"Quiz 5, Problem M\": twelve questions. Multiple-choice options are numbered lists (1. ... 5.) inside a question, and the constraint problem lists exam topics as 1. ... 8.; none are questions.",
+  "questions": [
+    {
+      "number": "Q1.1",
+      "start": "Before swimming in an unknown river, you want to figure out which animals are dangerous",
+      "end": "Is Spike dangerous?"
+    },
+    {
+      "number": "Q1.2",
+      "start": "Your 6.034 Tas have invented a new game based on baseball called Blurnsball",
+      "end": "Branch and bound with Maria's heuristic and an extended list (aka A*)"
+    },
+    {
+      "number": "Q2.1",
+      "start": "You are playing a new Sim game called Obamaquest",
+      "end": "You need not not draw any of the nodes below E, F,"
+    },
+    {
+      "number": "Q2.2",
+      "start": "Four 6.034 TAs (Mark, Mike, Rob, Sam) are trying to write eight questions",
+      "end": "questions are more evenly distributed across the four TAs."
+    },
+    {
+      "number": "Q3.1",
+      "start": "On the following graph, draw the decision boundaries produced by 1-Nearest Neighbor",
+      "end": "Draw the decision boundaries produced by that ID Tree on the graph below."
+    },
+    {
+      "number": "Q3.2",
+      "start": "Consider the following neural net",
+      "end": "Do not attempt to solve the equation."
+    },
+    {
+      "number": "Q4.1",
+      "start": "Miriam has a lot of finals",
+      "end": "given the meaning of the input data?"
+    },
+    {
+      "number": "Q4.2",
+      "start": "You want to use your cell phone to detect whether you are indoors or outdoors",
+      "end": "H(G,R)= \u03b5="
+    },
+    {
+      "number": "Q5.1",
+      "start": "Tired of searching for a new president every 10-15 years",
+      "end": "Candidate Intelligent Field Member of Gender What is learned"
+    },
+    {
+      "number": "Q5.2",
+      "start": "Experiments with the newly sighted children indicate",
+      "end": "Cannot identfy geometric figures on a computer screen"
+    },
+    {
+      "number": "Q5.3",
+      "start": "Disorientation experiments with rats, children, and adults demonstrate",
+      "end": "Gets stuck if a selected operator cannot be applied in the current state"
+    },
+    {
+      "number": "Q5.4",
+      "start": "Coen's method 1. Uses boosting to make clusters",
+      "end": "Works well only with labeled data"
+    }
+  ]
+}

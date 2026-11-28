@@ -1,0 +1,46 @@
+{
+  "pdf": "6-006-introduction-to-algorithms-spring-2020/quiz1.pdf",
+  "notes": "Problem 1 (write your name) is not a question.",
+  "questions": [
+    {
+      "number": "2",
+      "start": "following two Python functions correctly solve",
+      "end": "return best return best"
+    },
+    {
+      "number": "3",
+      "start": "represents a binary min-heap containing 10 items",
+      "end": "(c) the largest integer"
+    },
+    {
+      "number": "4",
+      "start": "The tree below contains 8 items",
+      "end": "(You do not need to draw the tree.)"
+    },
+    {
+      "number": "5",
+      "start": "n incoming students are sorted into four houses",
+      "end": "compute the magical lineage of a student in O(1) time"
+    },
+    {
+      "number": "6",
+      "start": "Given three arrays A, B, C, each containing n integers",
+      "end": "whether your running time is worst-case, expected, and/or amortized"
+    },
+    {
+      "number": "7",
+      "start": "Given a Sequence AVL Tree T containing n nodes",
+      "end": "subtree size u.size.)"
+    },
+    {
+      "number": "8",
+      "start": "FearBird is a supervillian",
+      "end": "patch() Patch any hole that follows the priority scheme above in O(log k) time"
+    },
+    {
+      "number": "9",
+      "start": "Vapor is an online gaming platform",
+      "end": "the largest number of active users possible in O(1) time"
+    }
+  ]
+}

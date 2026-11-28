@@ -1,0 +1,26 @@
+{
+  "pdf": "18-06sc-linear-algebra-fall-2011/exam1.pdf",
+  "notes": "Headings are \"1 (24 pts.)\": a number, then points, no separator.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "This question is about an m by n matrix A for which",
+      "end": "fits the description in part (a)."
+    },
+    {
+      "number": "2",
+      "start": "The 3 by 3 matrix A reduces to the identity matrix I",
+      "end": "What is the lower triangular factor L in A = LU ?"
+    },
+    {
+      "number": "3",
+      "start": "This 3 by 4 matrix depends on c",
+      "end": "For each c find the complete solution x to Ax ="
+    },
+    {
+      "number": "4",
+      "start": "If A is a 3 by 5 matrix, what information do you have",
+      "end": "echelon forms R ?"
+    }
+  ]
+}

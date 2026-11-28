@@ -1,0 +1,51 @@
+{
+  "pdf": "18-06-linear-algebra-spring-2010/final.pdf",
+  "notes": "The numbered grading grid on the cover (1. 2. 3. ...) is not a question. Matrices extract as scrambled text; snippets avoid them.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "This question is about the matrix",
+      "end": "write down the complete solution to"
+    },
+    {
+      "number": "2",
+      "start": "This problem finds the curve y = C + D 2t",
+      "end": "so that the best curve is y = 0?"
+    },
+    {
+      "number": "3",
+      "start": "Suppose Avi = bi for the vectors v1",
+      "end": "find A\u22121 from V and B."
+    },
+    {
+      "number": "4",
+      "start": "Suppose xk is the fraction of MIT students who prefer calculus",
+      "end": "lie on a single straight line in R2 for all t?"
+    },
+    {
+      "number": "5",
+      "start": "Consider a 120 rotation around the axis x = y = z",
+      "end": "three independent eigenvectors of P. No need to compute P ."
+    },
+    {
+      "number": "6",
+      "start": "This problem is about the matrix",
+      "end": "(If not, what is the test on A?)"
+    },
+    {
+      "number": "7",
+      "start": "This problem is to find the determinants of",
+      "end": "You could use linearity in row 1."
+    },
+    {
+      "number": "8",
+      "start": "When A is similar to B = M \u22121AM",
+      "end": "all the matrices A that are diagonalized by S."
+    },
+    {
+      "number": "9",
+      "start": "This square network has 4 nodes and 6 edges",
+      "end": "How much current enters node"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "pdf": "6-006-introduction-to-algorithms-spring-2020/quiz1-review.pdf",
+  "notes": "Three pages of review notes precede the two problems; the notes are not questions.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Popular restaurant Criminal Seafood does not take reservations",
+      "end": "remove and return the name of the customer from the front of the wait list"
+    },
+    {
+      "number": "2",
+      "start": "Mether Wan is a scientist who studies global rainfall",
+      "end": "return the peak rainfall at latitude ` since time t"
+    }
+  ]
+}

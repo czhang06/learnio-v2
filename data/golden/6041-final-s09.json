@@ -1,0 +1,41 @@
+{
+  "pdf": "6-041-probabilistic-systems-analysis-and-applied-probability-fall-2010/final-s09.pdf",
+  "notes": "Headings are \"Problem 3 (12 pts. total)\" with no separator after the number. The cover grading grid lists question numbers and parts.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Let {Xn} be a sequence of i.i.d random variables taking values in the interval",
+      "end": "an asymptotically unbiased estimator for \u00b5, irrespective of the distribution"
+    },
+    {
+      "number": "2",
+      "start": "Clearly circle the appropriate choice",
+      "end": "for some value \u03be. (v) None of the above."
+    },
+    {
+      "number": "3",
+      "start": "Aliens of two races (blue and green)",
+      "end": "Express \u00b52 = E[T2] in terms of \u03bbg and \u03bbb. Show your work."
+    },
+    {
+      "number": "4",
+      "start": "Researcher Jill is interested in studying employment",
+      "end": "standard normal CDF \u03a6. Show your work."
+    },
+    {
+      "number": "5",
+      "start": "The RandomView window factory produces window panes",
+      "end": "given that the truckload has weight 2340 pounds?"
+    },
+    {
+      "number": "6",
+      "start": "In Alice\u2019s Wonderland, there are six different seasons",
+      "end": "Sunshine arrives for the first time? Show your work."
+    },
+    {
+      "number": "7",
+      "start": "A newscast covering the final baseball game",
+      "end": "assuming that p = 0.5 and a = 1. Show your work."
+    }
+  ]
+}

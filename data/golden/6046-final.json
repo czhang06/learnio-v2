@@ -1,0 +1,51 @@
+{
+  "pdf": "6-046j-design-and-analysis-of-algorithms-spring-2015/final.pdf",
+  "notes": "",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Circle T or F for each of the following statements",
+      "end": "optimal with respect to memory transfers in the cache-"
+    },
+    {
+      "number": "2",
+      "start": "Design a data structure that maintains a dynamic set S of n elements",
+      "end": "Describe how the operations are implemented on your data structure and justify their runtime."
+    },
+    {
+      "number": "3",
+      "start": "You are in charge of the salary database for Meancorp",
+      "end": "justify that the worst-case running time for INSERT remains O(lg n)."
+    },
+    {
+      "number": "4",
+      "start": "Prof. Forrest Gump is very forgetful",
+      "end": "probability, i.e., 1 \u2212 1/n\u03b1?"
+    },
+    {
+      "number": "5",
+      "start": "Prof. Chopin has a piano recital coming up",
+      "end": "maximum number of pieces Prof. Chopin can learn. Analyze its running time."
+    },
+    {
+      "number": "6",
+      "start": "Consider the following flow network and initial flow f",
+      "end": "Perform the augmentation. What is the value of the resulting flow?"
+    },
+    {
+      "number": "7",
+      "start": "For your new startup company, Uber for Algorithms",
+      "end": "there is a subset S \u2286 T of (at least) k disjoint triples."
+    },
+    {
+      "number": "8",
+      "start": "Suppose you need to complete n jobs, and the time it takes to complete job i is ti",
+      "end": "chine Me with the longest Te, and the last job i\u2217 that was added to it."
+    },
+    {
+      "number": "9",
+      "start": "Consider an undirected graph G = (V, E) in which every vertex has degree at most",
+      "end": "including the cost of Luby\u2019s algorithm."
+    }
+  ]
+}

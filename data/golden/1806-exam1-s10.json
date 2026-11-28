@@ -1,0 +1,26 @@
+{
+  "pdf": "18-06-linear-algebra-spring-2010/exam1.pdf",
+  "notes": "The numbered grading grid on the cover (1. 2. 3. ...) is not a question. Matrices extract as scrambled text; snippets avoid them.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Forward elimination changes Ax = b to a row reduced Rx = d",
+      "end": "Use this matrix to find A and b."
+    },
+    {
+      "number": "2",
+      "start": "Suppose A is the matrix",
+      "end": "using the same A?"
+    },
+    {
+      "number": "3",
+      "start": "Circle the words that correctly complete the following sentence",
+      "end": "Describe the nullspace of A."
+    },
+    {
+      "number": "4",
+      "start": "Suppose that A is the matrix",
+      "end": "in the column space of A?"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "pdf": "6-006-introduction-to-algorithms-spring-2020/final.pdf",
+  "notes": "Problem 1 (write your name) is not a question. Problem 2's ten true/false parts are one question.",
+  "questions": [
+    {
+      "number": "2",
+      "start": "For each of the following questions, circle either T (True) or F (False)",
+      "end": "If P 6= NP, then A is not solvable in polynomial time."
+    },
+    {
+      "number": "3",
+      "start": "An integer array A is k-even-mixed",
+      "end": "O(n)-time algorithm to sort the pairs in A increasing by power."
+    },
+    {
+      "number": "4",
+      "start": "A Pythagorean Quad consists of four integers",
+      "end": "State whether your running time is worst-case, expected, and/or amortized."
+    },
+    {
+      "number": "5",
+      "start": "PurpleRock Park is a wildlife reserve",
+      "end": "that have not yet been removed from the database in O(1) time"
+    },
+    {
+      "number": "6",
+      "start": "For any weighted graph G = (V, E, w) and integer k",
+      "end": "that Gk is not connected."
+    },
+    {
+      "number": "7",
+      "start": "Friends Dal and Sean want to take a car trip",
+      "end": "spending at most b on expenses along the way."
+    },
+    {
+      "number": "8",
+      "start": "Let G = (V, E, w) be a weighted directed graph. Let c",
+      "end": "compute \u03b4(s, t), the minimum weight of any path from s to t."
+    },
+    {
+      "number": "9",
+      "start": "an (m, k)-separated subset of S",
+      "end": "any integer computed during your algorithm.)"
+    },
+    {
+      "number": "10",
+      "start": "Ted Snark is arranging a feast",
+      "end": "awarded to correct O(n4)-time algorithms."
+    }
+  ]
+}
