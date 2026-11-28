@@ -219,3 +219,126 @@ def test_llm_tagging_falls_back_to_keywords_without_api_key(monkeypatch):
 def test_llm_tagging_without_topics_returns_empty_labels(monkeypatch):
     monkeypatch.setattr(settings, "gemini_api_key", "dummy-key")
     assert segmenter.tag_topics_with_llm(["a question", "another"], []) == [[], []]
+
+
+# Choosing which numbered lines are questions. Questions are numbered 1, 2, 3...
+# and lists inside a question restart, so the longest such run wins.
+
+
+def test_numbered_list_inside_a_question_does_not_split_it():
+    raw = (
+        f"Problem 1. {LONG_A}\n"
+        "   1. MARK(i): mark element i as important.\n"
+        "   2. NEXT(i): find the next marked element after i.\n"
+        f"Problem 2. {LONG_B}\n"
+    )
+    first, second = segmenter.split_questions(raw)
+    assert "MARK(i)" in first and "NEXT(i)" in first
+    assert second == LONG_B
+
+
+def test_multiple_choice_options_do_not_split_a_numbered_question():
+    raw = (
+        f"1. {LONG_A}\n"
+        "     1. A stack is first in, first out\n"
+        "     2. A queue is first in, first out\n"
+        "     3. None of the above\n"
+        f"2. {LONG_B}\n"
+        f"3. {LONG_C}\n"
+    )
+    questions = segmenter.split_questions(raw)
+    assert len(questions) == 3
+    assert "None of the above" in questions[0]
+
+
+def test_two_level_quiz_headings():
+    raw = (
+        f"Quiz 1, Question 1, Rules (50 points)\n{LONG_A}\n"
+        f"Quiz 1, Question 2, Search (50 points)\n{LONG_B}\n"
+        f"Quiz 2, Problem 1, (25 points)\n{LONG_C}\n"
+    )
+    questions = segmenter.split_questions(raw)
+    assert [q.split("\n")[-1] for q in questions] == [LONG_A, LONG_B, LONG_C]
+    assert questions[0].startswith("Rules (50 points)")
+
+
+def test_number_then_keyword_heading():
+    assert segmenter.split_questions(f"1 Team Problem: A Mystery\n{LONG_A}\n") == [f"A Mystery\n{LONG_A}"]
+
+
+def test_cover_grid_numbers_on_the_line_before_question_one():
+    raw = (
+        "Your PRINTED name is: 1.\n"
+        "                                         2.\n"
+        "                                         3.\n"
+        f" 1. (12 points) {LONG_A}\n"
+        f" 2. (11 points) {LONG_B}\n"
+        f" 3. (11 points) {LONG_C}\n"
+    )
+    assert [q[q.index(")") + 2 :] for q in segmenter.split_questions(raw)] == [LONG_A, LONG_B, LONG_C]
+
+
+def test_repeated_answer_pages_are_not_new_questions():
+    raw = (
+        f"Problem 1: {LONG_A}\nProblem 2: {LONG_B}\n"
+        "Each question is repeated in the following pages.\n"
+        f"Problem 1: {LONG_A}\nProblem 2: {LONG_B}\n"
+    )
+    assert segmenter.split_questions(raw) == [LONG_A, f"{LONG_B}\nEach question is repeated in the following pages."]
+
+
+def test_tear_off_sheet_labels_are_not_questions():
+    raw = (
+        f"Problem 1: {LONG_A}\nProblem 2: {LONG_B}\n"
+        "Tear off sheet\nProblem 1, Part B\nTear off sheet\nProblem 2, Part B\n"
+    )
+    questions = segmenter.split_questions(raw)
+    assert questions[0] == LONG_A and questions[1].startswith(LONG_B) and len(questions) == 2
+
+
+def test_a_second_section_with_its_own_numbering_is_kept():
+    long_d = "Show that every tree with n vertices has exactly n minus one edges."
+    raw = f"Part A\n1. {LONG_A}\n2. {LONG_B}\nPart B\n1. {LONG_C}\n2. {long_d}\n"
+    assert segmenter.split_questions(raw) == [LONG_A, f"{LONG_B}\nPart B", LONG_C, long_d]
+
+
+def test_write_your_name_item_is_not_a_question_even_with_points():
+    raw = (
+        "Problem 1. [2 points] Information\n"
+        "(a) [1 point] Write your name at the top of each page.\n"
+        f"Problem 2. {LONG_A}\n"
+    )
+    assert segmenter.split_questions(raw) == [LONG_A]
+
+
+def test_dagger_marked_extra_problem_is_its_own_question():
+    raw = f"1. {LONG_A}\n2. {LONG_B}\nG1† . {LONG_C}\n"
+    assert segmenter.split_questions(raw) == [LONG_A, LONG_B, LONG_C]
+
+
+def test_only_dagger_problems():
+    assert segmenter.split_questions(f"G1† . {LONG_A}\n") == [LONG_A]
+
+
+def test_heading_numbers_follow_each_other():
+    assert segmenter._follows((1,), (2,))
+    assert not segmenter._follows((1,), (3,))
+    assert segmenter._follows((1, 2), (1, 3))
+    assert segmenter._follows((1, 2), (2, 1))
+    assert not segmenter._follows((1, 2), (3, 1))
+    assert not segmenter._follows((1,), (1, 2))
+
+
+def test_bulleted_keyword_heading():
+    raw = f"   • Question 1. {LONG_A}\n   • Question 2. {LONG_B}\n"
+    assert segmenter.split_questions(raw) == [LONG_A, LONG_B]
+
+
+def test_numbered_title_headings():
+    raw = f" 1 The L-tower problem\n {LONG_A}\n 2 Double Sums\n {LONG_B}\n"
+    assert segmenter.split_questions(raw) == [f"The L-tower problem\n{LONG_A}", f"Double Sums\n{LONG_B}"]
+
+
+def test_table_rows_ending_in_numbers_are_not_titles():
+    raw = f" 1 True or False 40 10\n 2 Fast Fourier Transform 5 1\nProblem 1. {LONG_A}\nProblem 2. {LONG_B}\n"
+    assert segmenter.split_questions(raw) == [LONG_A, LONG_B]

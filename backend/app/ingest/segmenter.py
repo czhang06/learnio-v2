@@ -10,6 +10,7 @@ keyword matching against the course's known topics otherwise.
 import hashlib
 import json
 import re
+from dataclasses import dataclass
 
 from ..config import settings
 
@@ -28,12 +29,28 @@ _LEADING_MARKS = (
     r"|\d{1,3}[ \t]*(?:marks?|points?|pts?)\b"
     r")[ \t]*"
 )
-_QUESTION_START = re.compile(
-    r"(?:^|\f)[ \t\f]*(?:" + _LEADING_MARKS + r")?(?:"
-    r"(?:question|problem)\s*\d{1,3}\b[ \t]*[\.\):]?"
-    r"|\d{1,3}[\.\):](?=\s)"
-    r"|\d{1,3}(?=[ \t]*[\(\[][ \t]*\d+[ \t]*(?:marks?|points?|pts?)\b)"
-    r")\s*",
+# A candidate heading at the start of a line (or page). Which candidates are
+# real question boundaries is decided afterwards, from how they are numbered.
+#   - "Quiz 2, Question 1" / "Quiz 5, Problem 3"           (two-level keyword)
+#   - "Question 1", "Problem 2:", "Problem 3-1."           (keyword)
+#   - "1 Team Problem:"                                     (number, then keyword)
+#   - "1." / "2)" / "3:"                                    (number with separator)
+#   - "4 (10 marks)"                                        (number, then mark count)
+#   - "G1† ."                                               (dagger-marked extra problem)
+#   - "2 Double Sums"                                       (number and a short title line)
+# Any of these may follow a bullet ("• Question 1.").
+_HEADING = re.compile(
+    r"(?:^|\f)(?P<indent>[ \t\f]*)(?:[•●▪◦][ \t]*)?(?:" + _LEADING_MARKS + r")?(?:"
+    r"quiz[ \t]*(?P<quiz>\d{1,2})[ \t]*,[ \t]*(?:question|problem)[ \t]*(?P<sub>\d{1,3})\b[ \t]*[\.\):,]?"
+    r"|(?:question|problem)\s*(?P<kw>\d{1,3})(?:-(?P<kwsub>\d{1,3}))?\b[ \t]*[\.\):]?"
+    r"|(?P<named>\d{1,3})[ \t]+(?:[a-z]+[ \t]+)?(?:question|problem)\b[ \t]*:?"
+    r"|(?P<dot>\d{1,3})[\.\):](?=\s)"
+    r"|(?P<pts>\d{1,3})(?=[ \t]*[\(\[][ \t]*\d+[ \t]*(?:marks?|points?|pts?)\b)"
+    r"|(?P<extra>[A-Z]\d{1,2})[ \t]*†[ \t]*[\.\):]"
+    # A title: capitalized, short, alone on its line, not ending in a number
+    # (which would make it a table row such as "1 True or False 40 10").
+    r"|(?P<title>\d{1,2})[ \t]+(?=[A-Z][^\n]{2,58}$)(?![^\n]*\d[ \t]*$)"
+    r")",
     re.IGNORECASE | re.MULTILINE,
 )
 _MARK_COUNT = re.compile(r"(\d{1,3})[ \t]*(marks?|points?|pts?)", re.IGNORECASE)
@@ -54,6 +71,8 @@ _INSTRUCTION = re.compile(
     r"|\bpoint\s+form\b",
     re.IGNORECASE | re.DOTALL,
 )
+_TEAR_OFF = re.compile(r"\btear[\s-]*off\b", re.IGNORECASE)
+_NAME_ONLY = re.compile(r"\bwrite\s+your\s+name\b", re.IGNORECASE)
 _MARKS_ANYWHERE = re.compile(r"[\(\[\{]\s*\d{1,3}\s*(?:marks?|points?|pts?)\b", re.IGNORECASE)
 # Sign-offs after the last question: "--- The End ---", "Good luck!".
 _SIGN_OFF = re.compile(
@@ -109,20 +128,169 @@ def _marks_prefix(marks: str | None) -> str:
     return marks.strip() + " "  # "[9]": a count with no unit, kept as printed
 
 
-def split_questions(raw: str) -> list[str]:
-    raw = _PAGE_LINE.sub("", raw)
-    matches = list(_QUESTION_START.finditer(raw))
-    if not matches:
+@dataclass
+class _Heading:
+    match: re.Match
+    family: str  # "keyword" | "dot" | "pts" | "title" | "extra"
+    number: tuple[int, ...]
+    indent: int
+    body_start: int = 0  # after the heading and the whitespace following it
+    body: str = ""  # text up to the next candidate, used for filtering
+
+
+def _candidates(raw: str) -> list[_Heading]:
+    found = []
+    for m in _HEADING.finditer(raw):
+        if m["quiz"]:
+            family, number = "keyword", (int(m["quiz"]), int(m["sub"]))
+        elif m["kw"]:
+            family, number = "keyword", (int(m["kw"]), int(m["kwsub"])) if m["kwsub"] else (int(m["kw"]),)
+        elif m["named"]:
+            family, number = "keyword", (int(m["named"]),)
+        elif m["extra"]:
+            family, number = "extra", (int(m["extra"][1:]),)
+        elif m["dot"]:
+            family, number = "dot", (int(m["dot"]),)
+        elif m["title"]:
+            family, number = "title", (int(m["title"]),)
+        else:
+            family, number = "pts", (int(m["pts"]),)
+        indent = len(m["indent"].replace("\f", "").expandtabs(4))
+        # The whitespace after a heading is skipped here, not matched by the
+        # pattern, so a heading on the very next line is still found.
+        body_start = re.compile(r"\s*").match(raw, m.end()).end()
+        found.append(_Heading(m, family, number, indent, body_start))
+    for i, h in enumerate(found):
+        end = found[i + 1].match.start() if i + 1 < len(found) else len(raw)
+        h.body = raw[h.body_start : max(end, h.body_start)]
+    return found
+
+
+def _follows(prev: tuple[int, ...], nxt: tuple[int, ...]) -> bool:
+    """Whether `nxt` is the heading number that comes right after `prev`."""
+    if len(prev) != len(nxt):
+        return False
+    if prev[:-1] == nxt[:-1] and nxt[-1] == prev[-1] + 1:
+        return True
+    return len(nxt) == 2 and nxt[0] == prev[0] + 1 and nxt[1] <= 1  # "Quiz 2, Question 1" after Quiz 1
+
+
+def _longest_chain(heads: list[_Heading]) -> list[_Heading]:
+    """Longest run of headings numbered 1, 2, 3... in order, skipping strays."""
+    best: list[int] = []
+    back: list[int] = []
+    for i, h in enumerate(heads):
+        best.append(1)
+        back.append(-1)
+        for j in range(i):
+            if best[j] + 1 > best[i] and _follows(heads[j].number, h.number):
+                best[i], back[i] = best[j] + 1, j
+    if not heads:
         return []
-    questions: list[str] = []
-    for i, m in enumerate(matches):
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(raw)
-        hang = m.end() - (max(raw.rfind("\n", 0, m.end()), raw.rfind("\f", 0, m.end())) + 1)
-        body = clean_layout(_SIGN_OFF.sub("", raw[m.end():end]), hang)
-        marks = _marks_prefix(m.group("marks"))
-        if not marks and _INSTRUCTION.search(body) and not _MARKS_ANYWHERE.search(body):
+    i = max(range(len(heads)), key=lambda k: (best[k], -k))
+    chain = []
+    while i >= 0:
+        chain.append(heads[i])
+        i = back[i]
+    return chain[::-1]
+
+
+def _groups(heads: list[_Heading]) -> list[list[_Heading]]:
+    """Headings of one style. Keyword headings form one group per numbering
+    depth; numbered ones are also split by indentation, so a list nested
+    inside a question does not join the questions' own numbering."""
+    groups: dict[tuple, list[_Heading]] = {}
+    for h in heads:
+        if h.family == "keyword":
+            key: tuple = (h.family, len(h.number))
+        else:
+            column = next((c for (f, c) in groups if f == h.family and abs(c - h.indent) <= 2), h.indent)
+            key = (h.family, column)
+        groups.setdefault(key, []).append(h)
+    return list(groups.values())
+
+
+def _is_instruction(h: _Heading) -> bool:
+    body = h.body
+    if _NAME_ONLY.search(body) and len(normalize(body)) < 200:
+        return True  # "Write your name on every page", even when it carries a point
+    return not h.match["marks"] and bool(_INSTRUCTION.search(body)) and not _MARKS_ANYWHERE.search(body)
+
+
+def _opening(text: str) -> str:
+    return normalize(text).lower()[:80]
+
+
+def split_questions(raw: str) -> list[str]:
+    """Split exam text into question bodies.
+
+    Every line that could start a question is a candidate. Candidates are
+    grouped by style, and the group whose numbers run 1, 2, 3... furthest is
+    taken as the questions, preferring explicit "Problem"/"Question" headings.
+    Numbered lists inside a question restart at 1, so they cannot outrun the
+    questions' own numbering. A later run that repeats earlier questions (an
+    answer booklet copy) or carries almost no text (tear-off sheets) is cut.
+    """
+    raw = _PAGE_LINE.sub("", raw)
+    heads = [h for h in _candidates(raw) if not _is_instruction(h)]
+    # Problems marked with a dagger ("G1†.", graduate-only problems in some
+    # problem sets) are questions in their own right, numbered apart from the rest.
+    extras = [h for h in heads if h.family == "extra"]
+    heads = [h for h in heads if h.family != "extra"]
+    if not heads:
+        heads, extras = extras, []
+    if not heads:
+        return []
+    groups = _groups(heads)
+    chains = {id(g): _longest_chain(g) for g in groups}
+    group = max(
+        groups,
+        key=lambda g: (
+            g[0].family == "keyword" and len(chains[id(g)]) >= 2,
+            len(chains[id(g)]),
+            g[0].family == "keyword",
+            -min(h.indent for h in g),
+            -g[0].match.start(),
+        ),
+    )
+    chain = chains[id(group)]
+
+    # Runs of the same style outside the main chain: further sections are
+    # kept, repeated or near-empty ones end the question before them.
+    kept, cuts = list(chain), []
+    openings = {_opening(h.body) for h in chain}
+    rest = [h for h in group if h.match.start() < chain[0].match.start() or h.match.start() > chain[-1].match.start()]
+    run: list[_Heading] = []
+    for h in [*rest, None]:
+        if h is not None and run and _follows(run[-1].number, h.number) and (
+            (run[-1].match.start() < chain[0].match.start()) == (h.match.start() < chain[0].match.start())
+        ):
+            run.append(h)
             continue
-        body = marks + body
+        if len(run) >= 2:
+            repeated = any(_opening(r.body) in openings for r in run)
+            thin = sum(len(normalize(r.body)) for r in run) / len(run) < 40 or any(
+                _TEAR_OFF.search(r.body) for r in run
+            )
+            if repeated or thin:
+                cuts.append(run[0].match.start())
+            else:
+                kept.extend(run)
+                openings |= {_opening(r.body) for r in run}
+        run = [h] if h is not None else []
+    kept.extend(h for h in extras if h.match.start() > chain[0].match.start())
+    kept.sort(key=lambda h: h.match.start())
+    stops = sorted([h.match.start() for h in kept] + cuts)
+
+    questions: list[str] = []
+    for h in kept:
+        start = h.match.start()
+        end = next((s for s in stops if s > start), len(raw))
+        m, begin = h.match, h.body_start
+        hang = begin - (max(raw.rfind("\n", 0, begin), raw.rfind("\f", 0, begin)) + 1)
+        body = clean_layout(_SIGN_OFF.sub("", raw[begin:end]), hang)
+        body = re.sub(r"^[,;:]\s*", "", body)  # "Quiz 1, Question 1, Rules": drop the joining comma
+        body = _marks_prefix(m["marks"]) + body
         if len(normalize(body)) >= _MIN_CHARS:
             questions.append(body)
     return questions

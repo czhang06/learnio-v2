@@ -1,0 +1,22 @@
+{
+  "pdf": "18-06-linear-algebra-spring-2010/exam2.pdf",
+  "split": "heldout",
+  "notes": "The numbered grading grid on the cover (1. 2. 3.) is not a question.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Find the matrix P that projects every vector b in R3 onto the line",
+      "end": "The diagonal entries of P add up"
+    },
+    {
+      "number": "2",
+      "start": "p = Axb is the vector in C(A) nearest to a given vector b",
+      "end": "of q1 and q2)."
+    },
+    {
+      "number": "3",
+      "start": "This problem is about the n by n matrix An that has zeros on its main",
+      "end": "What is the third eigenvalue of A3 and a corresponding eigenvector?"
+    }
+  ]
+}

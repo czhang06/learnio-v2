@@ -1,0 +1,37 @@
+{
+  "pdf": "6-046j-design-and-analysis-of-algorithms-spring-2015/quiz2.pdf",
+  "split": "heldout",
+  "notes": "Table rows in Problem 5 (\"1 (Penny) ...\") are not questions.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Circle T or F for each of the following statements",
+      "end": "is a 2-approximation algorithm for Vertex Cover."
+    },
+    {
+      "number": "2",
+      "start": "Prof. Musk is driving his Nikola electric car",
+      "end": "should run in O(V E + V 2 log V ) time."
+    },
+    {
+      "number": "3",
+      "start": "You have N psets due right now",
+      "end": "Analyze the running time and prove correctness."
+    },
+    {
+      "number": "4",
+      "start": "A group of m teens need to escape a maze",
+      "end": "What should E \" be?"
+    },
+    {
+      "number": "5",
+      "start": "The n people in your dorm want to carpool",
+      "end": "3 (Sheldon) X X 0"
+    },
+    {
+      "number": "6",
+      "start": "A Hamiltonian path on a directed graph G = (V, E) is a path",
+      "end": "the HAMILTONIAN PATH problem is NP-complete.)"
+    }
+  ]
+}

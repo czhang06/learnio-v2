@@ -1,0 +1,37 @@
+{
+  "pdf": "6-041-probabilistic-systems-analysis-and-applied-probability-fall-2010/practice/ps2.pdf",
+  "split": "heldout",
+  "notes": "Five numbered problems and a graduate problem headed \"G1\u2020.\".",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Most mornings, Victor checks the weather report",
+      "end": "Does it depend on the season?"
+    },
+    {
+      "number": "2",
+      "start": "You have a fair five-sided die",
+      "end": "Are events E and F independent given event D?"
+    },
+    {
+      "number": "3",
+      "start": "The local widget factory is having a blowout widget sale",
+      "end": "what is the probability that they were old widgets?"
+    },
+    {
+      "number": "4",
+      "start": "Oscar has lost his dog in either forest A",
+      "end": "probability that he will find a live dog for the first time on the second day?"
+    },
+    {
+      "number": "5",
+      "start": "In solving this problem, feel free to browse problems 43-45",
+      "end": "P(A1 \u222a A2 \u222a . . . \u222a An) = 1 \u2212 (1 \u2212 P(Ai))."
+    },
+    {
+      "number": "G1",
+      "start": "Alice, Bob, and Caroll play a chess tournament",
+      "end": "Caroll winning the tournament."
+    }
+  ]
+}

@@ -292,3 +292,21 @@ def test_auto_publish_never_commits_the_review_state(client, make_course, queued
     assert (body["status"], body["error"]) == ("failed", "publish failed")
     assert client.get(f"/api/documents/{doc_id}/drafts").json() == []
     assert questions(client) == []
+
+
+def test_pdf_with_unreadable_text_fails_with_an_explanation(client, make_course, monkeypatch):
+    from app.ingest import pipeline
+
+    gibberish = " ".join(["Q~¤ ¥§~} yG9<QyHE ­y{ ~{98:8¤"] * 30)
+    monkeypatch.setattr(pipeline, "extract_text", lambda data: "1. " + gibberish)
+    make_course()
+    body = upload(client, make_pdf()).json()
+    assert body["status"] == "failed"
+    assert "OCR" in body["error"]
+
+
+def test_readable_text_is_not_flagged_as_unreadable():
+    from app.ingest.pipeline import looks_unreadable
+
+    assert not looks_unreadable(" ".join(QUESTIONS * 10))
+    assert not looks_unreadable("x = 2y + 3")  # too short to judge

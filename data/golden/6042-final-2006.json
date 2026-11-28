@@ -1,0 +1,42 @@
+{
+  "pdf": "6-042j-mathematics-for-computer-science-fall-2010/final-2006.pdf",
+  "split": "heldout",
+  "notes": "Problem 3's numbered steps (1. 2.) belong to it. The OCW copy includes worked answers to Problem 7; they stay inside it.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Prove that for all n \u2208 N, the following identity holds",
+      "end": "n(n + 1)(2n + 1)"
+    },
+    {
+      "number": "2",
+      "start": "Coin-Flip is a 2 player game",
+      "end": "Show that your answer to part (b) is o(1)."
+    },
+    {
+      "number": "3",
+      "start": "A person is passing time by advancing a token",
+      "end": "necessary to find a solution to the recurrence."
+    },
+    {
+      "number": "4",
+      "start": "Exactly 1/5th of the people in a town have Beaver Fever",
+      "end": "What is the probability that the person"
+    },
+    {
+      "number": "5",
+      "start": "Two identical complete decks of cards, each with 52 cards",
+      "end": "has exactly one pair of identical"
+    },
+    {
+      "number": "6",
+      "start": "Scores for a final exam are given by picking an integer uniformly",
+      "end": "Prove, using the Chebyshev Inequality, that"
+    },
+    {
+      "number": "7",
+      "start": "1000 files F1, F2, . . . , F1000 have just reached a disk manager",
+      "end": "some disk with 200MB or more written on it?"
+    }
+  ]
+}
