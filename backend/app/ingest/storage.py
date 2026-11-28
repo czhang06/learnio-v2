@@ -14,7 +14,7 @@ from ..config import settings
 
 
 class Storage(Protocol):
-    def put(self, key: str, data: bytes) -> None: ...
+    def put(self, key: str, data: bytes, content_type: str = "application/pdf") -> None: ...
 
     def get(self, key: str) -> bytes: ...
 
@@ -29,7 +29,7 @@ class LocalStorage:
             raise ValueError(f"Storage key escapes the storage root: {key!r}")
         return path
 
-    def put(self, key: str, data: bytes) -> None:
+    def put(self, key: str, data: bytes, content_type: str = "application/pdf") -> None:
         path = self._path(key)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
@@ -68,8 +68,8 @@ class S3Storage:
             )
         self.client = client
 
-    def put(self, key: str, data: bytes) -> None:
-        self.client.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType="application/pdf")
+    def put(self, key: str, data: bytes, content_type: str = "application/pdf") -> None:
+        self.client.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType=content_type)
 
     def get(self, key: str) -> bytes:
         return self.client.get_object(Bucket=self.bucket, Key=key)["Body"].read()

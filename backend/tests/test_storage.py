@@ -78,3 +78,9 @@ def test_s3_endpoint_without_a_scheme_gets_https(monkeypatch):
     monkeypatch.setattr(settings, "s3_endpoint_url", "s3.us-west-004.backblazeb2.com")
     monkeypatch.setattr(settings, "s3_region", "us-west-004")
     assert S3Storage("exams").client.meta.endpoint_url == "https://s3.us-west-004.backblazeb2.com"
+
+
+def test_s3_storage_sets_the_content_type():
+    s3 = FakeS3()
+    S3Storage("exams", client=s3).put("images/1-0.png", b"png", "image/png")
+    assert s3.objects[("exams", "images/1-0.png")] == (b"png", "image/png")

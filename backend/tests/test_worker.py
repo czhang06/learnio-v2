@@ -101,16 +101,16 @@ def test_only_documents_in_review_can_be_published(client, make_course):
 def test_unexpected_error_fails_the_job_and_retry_reruns_it(client, make_course, queued, factory, monkeypatch):
     make_course()
     doc_id = upload(client, make_pdf()).json()["id"]
-    real = segmenter.split_questions
+    real = segmenter.split_questions_with_lines
 
     def boom(text):
         raise RuntimeError("segmenter exploded")
 
-    monkeypatch.setattr(segmenter, "split_questions", boom)
+    monkeypatch.setattr(segmenter, "split_questions_with_lines", boom)
     worker.run_once(factory)
     assert (status(client, doc_id)["status"], status(client, doc_id)["error"]) == ("failed", "segmenter exploded")
 
-    monkeypatch.setattr(segmenter, "split_questions", real)
+    monkeypatch.setattr(segmenter, "split_questions_with_lines", real)
     retried = client.post(f"/api/documents/{doc_id}/retry").json()
     assert (retried["status"], retried["error"]) == ("queued", None)
     worker.run_once(factory)
@@ -298,7 +298,9 @@ def test_pdf_with_unreadable_text_fails_with_an_explanation(client, make_course,
     from app.ingest import pipeline
 
     gibberish = " ".join(["Q~¤ ¥§~} yG9<QyHE ­y{ ~{98:8¤"] * 30)
-    monkeypatch.setattr(pipeline, "extract_text", lambda data: "1. " + gibberish)
+    from app.ingest.pdf_extract import Layout
+
+    monkeypatch.setattr(pipeline, "extract_layout", lambda data: Layout("1. " + gibberish, []))
     make_course()
     body = upload(client, make_pdf()).json()
     assert body["status"] == "failed"

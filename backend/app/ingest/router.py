@@ -1,10 +1,15 @@
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+import re
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from ..db import get_session
 from ..deps import require_admin
 from . import service
 from .schemas import DocumentOut, DraftOut
+from .storage import get_storage
+
+_IMAGE_NAME = re.compile(r"\d{1,10}-\d{1,5}\.png")
 
 router = APIRouter(prefix="/api")
 
@@ -42,3 +47,16 @@ def publish_document(document_id: int, session: Session = Depends(get_session)):
 @router.post("/documents/{document_id}/retry", response_model=DocumentOut, dependencies=[Depends(require_admin)])
 def retry_document(document_id: int, session: Session = Depends(get_session)):
     return service.retry_document(session, service.get_document(session, document_id))
+
+
+@router.get("/images/{name}")
+def question_image(name: str):
+    """A question's PNG, as linked from `image_url`. Names are never reused
+    (document id and position), so browsers may cache them for good."""
+    if not _IMAGE_NAME.fullmatch(name):
+        raise HTTPException(404, "Unknown image")
+    try:
+        data = get_storage().get(f"images/{name}")
+    except Exception as exc:
+        raise HTTPException(404, "Unknown image") from exc
+    return Response(data, media_type="image/png", headers={"Cache-Control": "public, max-age=31536000, immutable"})

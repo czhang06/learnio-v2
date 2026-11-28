@@ -15,3 +15,4 @@ class DraftOut(BaseModel):
     position: int
     text: str
     topic_names: list[str]
+    image_key: str | None = None

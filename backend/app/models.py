@@ -100,6 +100,7 @@ class DraftQuestion(Base):
     text: Mapped[str] = mapped_column(Text)
     text_hash: Mapped[str] = mapped_column(String(64))
     topic_names: Mapped[list[str]] = mapped_column(ARRAY(String(120)), default=list)
+    image_key: Mapped[str | None] = mapped_column(String(255))
 
     document: Mapped[Document] = relationship(back_populates="drafts")
 
@@ -113,6 +114,7 @@ class Question(Base):
     document_id: Mapped[int | None] = mapped_column(ForeignKey("documents.id", ondelete="SET NULL"))
     text: Mapped[str] = mapped_column(Text)
     text_hash: Mapped[str] = mapped_column(String(64))
+    image_key: Mapped[str | None] = mapped_column(String(255))  # PNG of the question's region of its PDF
     rand: Mapped[float] = mapped_column(Float(53), server_default=func.random())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

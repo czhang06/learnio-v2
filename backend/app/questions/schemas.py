@@ -6,6 +6,7 @@ class QuestionOut(BaseModel):
     id: int
     text: str
     topics: list[str]
+    image_url: str | None = None  # path under the API: a PNG of the question as printed
 
 
 class QuestionPage(BaseModel):

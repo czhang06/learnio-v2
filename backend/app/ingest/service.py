@@ -66,8 +66,8 @@ def publish_document(session: Session, doc: Document) -> Document:
     """Copy a reviewed document's drafts into the question bank.
 
     A draft whose text is already in the course is not stored again, but its
-    text replaces the stored one: same words, possibly better layout, so
-    re-uploading a PDF refreshes questions stored before line breaks were kept.
+    text and image replace the stored ones: same words, possibly better layout,
+    so re-uploading a PDF refreshes questions stored by an older ingester.
     """
     if doc.status != DocumentStatus.NEEDS_REVIEW:
         raise HTTPException(409, f"Only documents awaiting review can be published (this one is {doc.status})")
@@ -76,7 +76,13 @@ def publish_document(session: Session, doc: Document) -> Document:
     for draft in doc.drafts:
         row = session.execute(
             pg_insert(Question)
-            .values(course_id=doc.course_id, document_id=doc.id, text=draft.text, text_hash=draft.text_hash)
+            .values(
+                course_id=doc.course_id,
+                document_id=doc.id,
+                text=draft.text,
+                text_hash=draft.text_hash,
+                image_key=draft.image_key,
+            )
             .on_conflict_do_nothing(index_elements=["course_id", "text_hash"])
             .returning(Question.id)
         ).first()
@@ -84,7 +90,7 @@ def publish_document(session: Session, doc: Document) -> Document:
             session.execute(
                 update(Question)
                 .where(Question.course_id == doc.course_id, Question.text_hash == draft.text_hash)
-                .values(text=draft.text)
+                .values(text=draft.text, image_key=draft.image_key)
             )
             continue
         stored += 1
