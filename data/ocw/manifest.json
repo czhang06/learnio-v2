@@ -1,0 +1,76 @@
+{
+  "source": "MIT OpenCourseWare, https://ocw.mit.edu",
+  "license": "CC BY-NC-SA 4.0, https://creativecommons.org/licenses/by-nc-sa/4.0/",
+  "courses": [
+    {
+      "code": "MIT 6.006",
+      "name": "Introduction to Algorithms (Spring 2020)",
+      "slug": "6-006-introduction-to-algorithms-spring-2020",
+      "instructors": "Erik Demaine, Jason Ku, Justin Solomon",
+      "exams": {
+        "quiz1": "mit6_006s20_q1", "quiz2": "mit6_006s20_q2", "quiz3": "mit6_006s20_q3_pdf",
+        "final": "mit6_006s20_final",
+        "quiz1-review": "mit6_006s20_review1", "quiz2-review": "mit6_006s20_review2",
+        "quiz3-review": "mit6_006s20_review3"
+      }
+    },
+    {
+      "code": "MIT 6.046J",
+      "name": "Design and Analysis of Algorithms (Spring 2015)",
+      "slug": "6-046j-design-and-analysis-of-algorithms-spring-2015",
+      "instructors": "Erik Demaine, Srini Devadas, Nancy Lynch",
+      "exams": {"quiz1": "quiz-1", "quiz2": "quiz-2", "final": "final-exam"}
+    },
+    {
+      "code": "MIT 18.06",
+      "name": "Linear Algebra (Spring 2010)",
+      "slug": "18-06-linear-algebra-spring-2010",
+      "instructors": "Gilbert Strang",
+      "exams": {
+        "exam1": "mit18_06s10_exam1_s10", "exam2": "mit18_06s10_exam2_s10",
+        "exam3": "mit18_06s10_exam3_s10", "final": "mit18_06s10_final_exam"
+      }
+    },
+    {
+      "code": "MIT 6.042J",
+      "name": "Mathematics for Computer Science (Fall 2010)",
+      "slug": "6-042j-mathematics-for-computer-science-fall-2010",
+      "instructors": "Tom Leighton, Marten van Dijk",
+      "exams": {
+        "midterm": "mit6_042jf10_midterm", "midterm-practice": "mit6_042jf10_mid_practice",
+        "final-2010": "mit6_042jf10_final", "final-2008": "mit6_042jf10_final_2008",
+        "final-2006": "mit6_042jf10_final_2006", "final-2004": "mit6_042jf10_final_2004"
+      }
+    },
+    {
+      "code": "MIT 6.041",
+      "name": "Probabilistic Systems Analysis and Applied Probability (Fall 2010)",
+      "slug": "6-041-probabilistic-systems-analysis-and-applied-probability-fall-2010",
+      "instructors": "John Tsitsiklis",
+      "exams": {
+        "quiz1-f10": "mit6_041f10_quiz01", "quiz1-f09": "mit6_041f10_quiz01_f09",
+        "quiz1-s09": "mit6_041f10_quiz01_s09", "quiz2-f10": "mit6_041f10_quiz02",
+        "quiz2-f09": "mit6_041f10_quiz02_f09", "quiz2-s08": "mit6_041f10_quiz02_s08",
+        "final-f10": "mit6_041f10_final", "final-f09": "mit6_041f10_final_f09",
+        "final-s09": "mit6_041f10_final_s09"
+      }
+    },
+    {
+      "code": "MIT 6.034",
+      "name": "Artificial Intelligence (Fall 2010)",
+      "slug": "6-034-artificial-intelligence-fall-2010",
+      "instructors": "Patrick Winston",
+      "exams": {
+        "quiz1-2010": "mit6_034f10_quiz1_2010", "quiz2-2010": "mit6_034f10_quiz2_2010",
+        "quiz3-2010": "mit6_034f10_quiz3_2010", "quiz4-2010": "mit6_034f10_quiz4_2010",
+        "final-2010": "mit6_034f10_final_2010",
+        "quiz1-2009": "mit6_034f10_quiz1_2009", "quiz2-2009": "mit6_034f10_quiz2_2009",
+        "quiz3-2009": "mit6_034f10_quiz3_2009", "quiz4-2009": "mit6_034f10_quiz4_2009",
+        "final-2009": "mit6_034f10_final_2009",
+        "quiz1-2008": "mit6_034f10_quiz1_2008", "quiz2-2008": "mit6_034f10_quiz2_2008",
+        "quiz3-2008": "mit6_034f10_quiz3_2008", "quiz4-2008": "mit6_034f10_quiz4_2008",
+        "final-2008": "mit6_034f10_final_2008"
+      }
+    }
+  ]
+}
