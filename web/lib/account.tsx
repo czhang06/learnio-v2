@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { SessionProvider, signIn, signOut, useSession } from "next-auth/react";
+import { SessionProvider, getProviders, signIn, signOut, useSession } from "next-auth/react";
 import { getMe, listSaved, setApiToken, setFollowing, setSaved } from "@/lib/api";
 import type { Me } from "@/lib/api";
 import { SESSION_REFRESH_SECONDS } from "@/lib/session";
@@ -13,6 +13,8 @@ interface Account {
   me: Me | null;
   following: Set<string>;
   saved: Set<number>;
+  /** False until sign-in is set up (no providers, or NextAuth not configured). */
+  canSignIn: boolean;
   follow: (code: string, on: boolean) => Promise<void>;
   save: (questionId: number, on: boolean) => Promise<void>;
   signIn: () => void;
@@ -35,6 +37,17 @@ function AccountProvider({ children }: { children: ReactNode }) {
   setApiToken(token);
 
   const [me, setMe] = useState<Me | null>(null);
+  const [canSignIn, setCanSignIn] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getProviders()
+      .then((p) => !cancelled && setCanSignIn(p !== null && Object.keys(p).length > 0))
+      .catch(() => !cancelled && setCanSignIn(false));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [saved, setSavedIds] = useState<Set<number>>(new Set());
   const signedIn = status === "authenticated" && token !== null;
 
@@ -89,12 +102,13 @@ function AccountProvider({ children }: { children: ReactNode }) {
       me,
       following: new Set((me?.courses ?? []).map((c) => c.code)),
       saved,
+      canSignIn,
       follow,
       save,
       signIn: () => void signIn(),
       signOut: () => void signOut(),
     }),
-    [status, signedIn, me, saved, follow, save]
+    [status, signedIn, me, saved, canSignIn, follow, save]
   );
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
 }

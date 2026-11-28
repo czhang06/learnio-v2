@@ -7,6 +7,7 @@ export default function AccountMenu() {
   const account = useAccount();
   if (account.status === "loading") return null;
   if (account.status === "guest") {
+    if (!account.canSignIn) return null;
     return (
       <button type="button" className="btn-quiet btn-small" onClick={account.signIn}>
         Sign in

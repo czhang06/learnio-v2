@@ -194,7 +194,7 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
           />
         </div>
 
-        {account.status === "guest" && (
+        {account.status === "guest" && account.canSignIn && (
           <p className="hint guest-hint">
             <button type="button" className="text-button" onClick={account.signIn}>
               Sign in
