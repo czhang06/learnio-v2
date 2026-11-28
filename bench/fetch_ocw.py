@@ -38,18 +38,18 @@ def main(prefixes: list[str]) -> None:
     for course in manifest["courses"]:
         if prefixes and not any(course["slug"].startswith(p) for p in prefixes):
             continue
-        folder = ROOT / course["slug"]
-        folder.mkdir(exist_ok=True)
-        for name, resource in course["exams"].items():
-            target = folder / f"{name}.pdf"
-            if target.exists():
-                continue
-            data = fetch(pdf_url(course["slug"], resource))
-            if not data.startswith(b"%PDF"):
-                raise RuntimeError(f"{resource} did not return a PDF")
-            target.write_bytes(data)
-            print(f"{course['code']:<11} {name:<18} {len(data) // 1024:>5} KB")
-            time.sleep(0.5)  # be gentle with OCW
+        for section, folder in (("exams", ROOT / course["slug"]), ("practice", ROOT / course["slug"] / "practice")):
+            for name, resource in course.get(section, {}).items():
+                target = folder / f"{name}.pdf"
+                if target.exists():
+                    continue
+                data = fetch(pdf_url(course["slug"], resource))
+                if not data.startswith(b"%PDF"):
+                    raise RuntimeError(f"{resource} did not return a PDF")
+                folder.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data)
+                print(f"{course['code']:<11} {section:<8} {name:<20} {len(data) // 1024:>5} KB")
+                time.sleep(0.5)  # be gentle with OCW
 
 
 if __name__ == "__main__":
