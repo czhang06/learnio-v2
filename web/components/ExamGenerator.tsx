@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import QuestionItem from "@/components/QuestionItem";
 import { useAccount } from "@/lib/account";
+import { getClientId } from "@/lib/clientId";
+import { useExamState } from "@/lib/courseState";
 import { errorMessage, generateExam, getAttempt, listAttempts, markAnswer, retryAttempt, submitAttempt } from "@/lib/api";
 import type { Attempt, AttemptSummary, Exam, Result } from "@/lib/api";
 import { formatMarks, parseQuestion } from "@/lib/questionFormat";
@@ -12,7 +15,6 @@ import type { Marks } from "@/lib/questionFormat";
 interface Props {
   course: string;
   topics: string[];
-  clientId: string;
 }
 
 function clamp(n: number, lo: number, hi: number): number {
@@ -31,16 +33,30 @@ function totalMarks(exam: Exam): Marks | null {
   return total;
 }
 
-export default function ExamGenerator({ course, topics, clientId }: Props) {
+/**
+ * Practice exams. The exam in progress is kept in the course layout (see
+ * courseState), so it survives a look at the question bank. A signed-in
+ * visitor's exam is an attempt, named in the URL (?attempt=42), so it can be
+ * refreshed, reopened from history and linked to.
+ */
+export default function ExamGenerator({ course, topics }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const attemptParam = Number(useSearchParams().get("attempt")) || null;
   const [picked, setPicked] = useState<string[]>([]);
   const [num, setNum] = useState("10");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [exam, setExam] = useState<Exam | null>(null);
+  const [clientId, setClientId] = useState("");
   const account = useAccount();
   const signedIn = account.status === "signed-in";
-  const [marks, setMarks] = useState<Record<number, Result | null>>({});
-  const [results, setResults] = useState<Attempt | null>(null);
+  const [state, setState] = useExamState();
+  // An exam from another course (the layout changed course) is not shown.
+  const current = state.exam?.course_code === course ? state : { exam: null, marks: {}, results: null };
+  const { exam, marks, results } = current;
+  const setMarks = (update: (m: Record<number, Result | null>) => Record<number, Result | null>) =>
+    setState((s) => ({ ...s, marks: update(s.marks) }));
+  const setResults = (r: Attempt | null) => setState((s) => ({ ...s, results: r }));
   const [history, setHistory] = useState<AttemptSummary[]>([]);
   const [historyKey, setHistoryKey] = useState(0);
   // After Retry or reopening an attempt, move focus to the new sheet's title
@@ -55,12 +71,13 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
     }
   }, [exam]);
 
+  useEffect(() => setClientId(getClientId()), []);
+
+  // Opened with ?attempt=42 (a refresh, a link, the back button): load it.
   useEffect(() => {
-    setPicked([]);
-    setExam(null);
-    setResults(null);
-    setError(null);
-  }, [course]);
+    if (attemptParam && signedIn && exam?.attempt_id !== attemptParam) void reopen(attemptParam, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attemptParam, signedIn]);
 
   useEffect(() => {
     if (!signedIn || !course) {
@@ -77,9 +94,9 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
   }, [signedIn, course, historyKey]);
 
   function show(next: Exam, nextMarks: Record<number, Result | null> = {}, done: Attempt | null = null) {
-    setExam(next);
-    setMarks(nextMarks);
-    setResults(done);
+    setState({ exam: next, marks: nextMarks, results: done });
+    const query = next.attempt_id ? "?attempt=" + next.attempt_id : "";
+    router.replace(pathname + query, { scroll: false });
   }
 
   function mark(questionId: number, result: Result | null) {
@@ -121,11 +138,11 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
     }
   }
 
-  async function reopen(id: number) {
+  async function reopen(id: number, focus = true) {
     setError(null);
     try {
       const attempt = await getAttempt(id);
-      focusSheet.current = true;
+      focusSheet.current = focus;
       const restored: Record<number, Result | null> = {};
       for (const q of attempt.questions) restored[q.id] = q.result;
       show(

@@ -62,8 +62,7 @@ export default function QuestionItem({ question, number, result, onMark }: Props
                 loading={number <= 2 ? "eager" : "lazy"}
                 decoding="async"
                 // The first question is usually the largest thing on screen: fetch it first.
-                // (Plain attribute: React 18 doesn't know the camelCase prop.)
-                {...(number === 1 ? { fetchpriority: "high" } : {})}
+                {...(number === 1 ? { fetchPriority: "high" as const } : {})}
               />
             </div>
             <details className="question-as-text no-print">
