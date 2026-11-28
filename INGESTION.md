@@ -6,7 +6,10 @@ The Phase 2 target is **precision and recall of at least 95%**.
 
 ## Test set
 
-17 documents from the MIT OpenCourseWare files in `data/ocw/` (CC BY-NC-SA), covering all six demo courses: 13 exams and quizzes, and 4 practice sheets (a quiz review, a problem set, a recitation and a tutorial). They hold 98 questions. They were chosen to cover the layouts the courses use, including the ones the segmenter handled worst in a first run.
+24 documents from the MIT OpenCourseWare files in `data/ocw/` (CC BY-NC-SA), covering all six demo courses and holding 129 questions, in two parts:
+
+- **dev**: 17 documents, 98 questions. These were used while developing the segmenter: 13 exams and quizzes, and 4 practice sheets (a quiz review, a problem set, a recitation and a tutorial). They were chosen to cover the layouts the courses use, including the ones the baseline handled worst.
+- **heldout**: 7 documents, 31 questions. These were labelled after the segmenter was written and scored without looking at its output first. Each file has `"split": "heldout"`.
 
 Each `data/golden/<name>.json` names its PDF and lists the questions, each by a phrase from its first lines and one from its last lines. The labelling rules:
 
@@ -28,13 +31,43 @@ Merged questions, questions cut in two, repeated copies and cover pages taken fo
 
 ## Results
 
-| Version | Returned | Right | Precision | Recall | F1 | Documents fully right |
-|---|---:|---:|---:|---:|---:|---:|
-| baseline (regex segmenter) | 209 | 74 | 35.4% | 75.5% | 48.2% | 7 / 17 |
+| Version | Set | Returned | Right | Precision | Recall | F1 | Documents fully right |
+|---|---|---:|---:|---:|---:|---:|---:|
+| baseline (regex segmenter) | dev | 209 | 74 | 35.4% | 75.5% | 48.2% | 7 / 17 |
+| heading chains, first held-out run | heldout | 30 | 29 | 96.7% | 93.5% | 95.1% | 6 / 7 |
+| heading chains | dev | 98 | 98 | 100% | 100% | 100% | 17 / 17 |
+| heading chains | heldout | 31 | 31 | 100% | 100% | 100% | 7 / 7 |
 
-Per-document results are in `bench/results/ingest/`.
+The baseline was not scored on the held-out set, which was labelled later. Per-document results are in `bench/results/ingest/`.
 
-### Where the baseline goes wrong
+**Read the 100% rows with care.** The dev set shaped the rules. The held-out set's first run (96.7% / 93.5%) is the honest estimate for unseen exams. Its one miss was a heading style the rules did not know: the dagger-marked graduate problems "G1†" that 10 of the 6.041 problem sets use. The rule added for it is specific to that convention. The next layout-specific change should be checked against freshly labelled exams, not these.
+
+### How the heading-chain segmenter works
+
+Every line that could start a question is a candidate:
+
+- keyword headings, including "Quiz 2, Question 1", "Problem 3-1" and "1 Team Problem:"
+- numbers with a separator ("1.", "2)")
+- numbers before a mark count ("4 (10 marks)")
+- short numbered title lines ("2 Double Sums")
+- dagger-marked extra problems ("G1†.")
+
+Any of these may follow a bullet. Candidates are grouped by style: keyword headings by numbering depth, and numbered ones by indentation. The questions are the group whose numbers run 1, 2, 3… furthest, with explicit Problem or Question headings preferred. A list inside a question restarts at 1, so it can never outrun the questions' own numbering. That removes the baseline's main failure without needing font sizes or bold.
+
+After the main run, a later run of the same style is handled in one of two ways:
+
+- A run that repeats earlier questions (answer pages), or has almost no text or says "tear off" (tear-off sheets), ends the question before it.
+- Any other run is kept as a further section.
+
+Separately, ingestion now rejects PDFs whose extracted text is gibberish (fonts with no character map) with an error asking for another copy, instead of storing nonsense. The two 2011 18.06 files are the only ones in the OCW set it flags.
+
+### Remaining gaps
+
+- **Unnumbered single problems** (6.041 recitation 22) return no questions, and the upload fails with "No questions found".
+- **Unreadable PDFs** need OCR or the LLM fallback.
+- **Long problems with many parts** stay one question, per the labelling rules: 6.041's Fall 2010 final returns 2 questions with 8 and 9 parts each. Splitting them into parts is a product decision for later.
+
+### Where the baseline went wrong
 
 1. **Numbered lists inside a question start new questions.** This is the main cause of low precision. It covers operation lists ("1. MARK-YELLOW(i)"), multiple-choice options ("1. P and Q are equivalent"), numbered conditions and parts numbered "1. (10 points)". Examples: 6.041 quiz 1 returns 26 pieces for 2 questions, 6.034 final 2008 returns 66 for 12, and 6.046J quiz 1 returns 14 for 7.
 2. **Headings the pattern does not know are missed.** Examples are "Quiz 1, Question 1, Rules (50 points)" and "1 Team Problem: A Mystery". Text before the first recognised heading is dropped, so 6.034 final 2008 loses its first four questions and the 6.042J recitation loses its only one.

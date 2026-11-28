@@ -1,0 +1,17 @@
+{
+  "pdf": "6-034-artificial-intelligence-fall-2010/quiz3-2010.pdf",
+  "split": "heldout",
+  "notes": "Two 50-point problems. The tear-off sheet labels (1A 1B 2A 2B) are not questions.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Alice and Bob, a pair of 6.034 students, traveled to DC",
+      "end": "what are the new decision boundaries and associated disorder?"
+    },
+    {
+      "number": "2",
+      "start": "For the network below, answer the following questions",
+      "end": "new value of weight WB)."
+    }
+  ]
+}

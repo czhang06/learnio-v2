@@ -1,0 +1,32 @@
+{
+  "pdf": "6-006-introduction-to-algorithms-spring-2020/quiz2.pdf",
+  "split": "heldout",
+  "notes": "Problem 1 (write your name) is not a question.",
+  "questions": [
+    {
+      "number": "2",
+      "start": "Given a weighted, directed graph G = (V, E, w) with positive and negative edge weights",
+      "end": "Recall that a cycle may repeat vertices/edges."
+    },
+    {
+      "number": "3",
+      "start": "A 3-color labeling of a graph maps each edge to either red, green, or blue",
+      "end": "faster correct algorithms will receive more points than slower ones.)"
+    },
+    {
+      "number": "4",
+      "start": "Ranger Raargorn needs to deliver a message",
+      "end": "e.g., O(k log k) or O(nk)."
+    },
+    {
+      "number": "5",
+      "start": "A cycle-sparse graph is any weighted directed simple graph",
+      "end": "Recall a cycle is simple if visits any vertex at most once."
+    },
+    {
+      "number": "6",
+      "start": "Gralexandra Bellham wants to drive her electric car",
+      "end": "for slower correct algorithms, e.g., O(n2)."
+    }
+  ]
+}

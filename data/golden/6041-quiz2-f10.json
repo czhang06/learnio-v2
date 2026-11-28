@@ -1,0 +1,17 @@
+{
+  "pdf": "6-041-probabilistic-systems-analysis-and-applied-probability-fall-2010/quiz2-f10.pdf",
+  "split": "heldout",
+  "notes": "Two problems with numbered parts, then each problem repeated for answers: the copy is not new questions.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "X is a (continuous) uniform random variable on [0, 4]",
+      "end": "given that W = 3."
+    },
+    {
+      "number": "2",
+      "start": "Let X, X1, X2, . . . be independent normal random variables with mean 0",
+      "end": "Are N and S independent? Justify your answer."
+    }
+  ]
+}

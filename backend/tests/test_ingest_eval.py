@@ -78,7 +78,7 @@ def test_a_repeated_copy_counts_against_precision(labelled):
 
 
 def test_totals():
-    r = ingest_eval.DocResult(name="d", gold=4, predicted=5, correct=3)
+    r = ingest_eval.DocResult(name="d", split="dev", gold=4, predicted=5, correct=3)
     t = ingest_eval.totals([r])
     assert (t["precision"], t["recall"], t["f1"]) == (0.6, 0.75, 0.667)
     assert ingest_eval.totals([]) == {

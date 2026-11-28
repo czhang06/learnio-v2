@@ -48,6 +48,7 @@ def segment(pdf: bytes) -> list[str]:
 @dataclass
 class DocResult:
     name: str
+    split: str  # "dev": used while developing the segmenter; "heldout": only ever scored
     gold: int
     predicted: int
     correct: int
@@ -65,11 +66,11 @@ class DocResult:
         return self.correct / self.gold if self.gold else 0.0
 
 
-def score(name: str, gold: list[dict], pieces: list[str]) -> DocResult:
+def score(name: str, gold: list[dict], pieces: list[str], split: str = "dev") -> DocResult:
     starts = [norm(q["start"]) for q in gold]
     ends = [norm(q["end"]) for q in gold]
     texts = [norm(p) for p in pieces]
-    result = DocResult(name=name, gold=len(gold), predicted=len(pieces), correct=0)
+    result = DocResult(name=name, split=split, gold=len(gold), predicted=len(pieces), correct=0)
     matched_piece: set[int] = set()
     for i, q in enumerate(gold):
         holders = [j for j, t in enumerate(texts) if starts[i] in t]
@@ -104,7 +105,7 @@ def run(pattern: str = "") -> list[DocResult]:
             continue
         doc = json.loads(path.read_text())
         pieces = segment((PDFS / doc["pdf"]).read_bytes())
-        results.append(score(path.stem, doc["questions"], pieces))
+        results.append(score(path.stem, doc["questions"], pieces, doc.get("split", "dev")))
     return results
 
 
@@ -136,7 +137,7 @@ def main() -> None:
 
     results = run(args.pattern)
     print(f"{'document':<20} {'gold':>4} {'found':>5} {'right':>5} {'prec':>5} {'recall':>6}  problems")
-    for r in results:
+    for r in sorted(results, key=lambda r: (r.split != "dev", r.name)):
         problems = []
         if r.merged:
             problems.append(f"merged {','.join(r.merged)}")
@@ -148,15 +149,21 @@ def main() -> None:
             problems.append(f"{r.extra} extra")
         line = f"{r.name:<20} {r.gold:>4} {r.predicted:>5} {r.correct:>5} {r.precision:>5.0%} {r.recall:>6.0%}"
         print(line + ("  " + "; ".join(problems) if args.verbose or len(problems) <= 2 else f"  {len(problems)} kinds"))
-    t = totals(results)
-    print(
-        f"\n{t['documents']} documents, {t['gold']} questions: found {t['predicted']}, {t['correct']} right. "
-        f"precision {t['precision']:.1%}, recall {t['recall']:.1%}, F1 {t['f1']:.1%}; "
-        f"{t['documents_all_correct']} documents fully right."
-    )
+    by_split = {"all": totals(results)}
+    for split in ("dev", "heldout"):
+        part = [r for r in results if r.split == split]
+        if part:
+            by_split[split] = totals(part)
+    print()
+    for name, t in by_split.items():
+        print(
+            f"{name:<8} {t['documents']:>2} documents, {t['gold']:>3} questions: found {t['predicted']}, "
+            f"{t['correct']} right. precision {t['precision']:.1%}, recall {t['recall']:.1%}, F1 {t['f1']:.1%}; "
+            f"{t['documents_all_correct']} documents fully right."
+        )
     if args.json:
         Path(args.json).write_text(
-            json.dumps({"totals": t, "documents": [asdict(r) for r in results]}, indent=2) + "\n"
+            json.dumps({"totals": by_split, "documents": [asdict(r) for r in results]}, indent=2) + "\n"
         )
 
 

@@ -1,0 +1,300 @@
+{
+  "totals": {
+    "all": {
+      "documents": 24,
+      "gold": 129,
+      "predicted": 129,
+      "correct": 129,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "documents_all_correct": 24
+    },
+    "dev": {
+      "documents": 17,
+      "gold": 98,
+      "predicted": 98,
+      "correct": 98,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "documents_all_correct": 17
+    },
+    "heldout": {
+      "documents": 7,
+      "gold": 31,
+      "predicted": 31,
+      "correct": 31,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "documents_all_correct": 7
+    }
+  },
+  "documents": [
+    {
+      "name": "1806-exam1-f11",
+      "split": "dev",
+      "gold": 4,
+      "predicted": 4,
+      "correct": 4,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "1806-exam1-s10",
+      "split": "dev",
+      "gold": 4,
+      "predicted": 4,
+      "correct": 4,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "1806-exam2-s10",
+      "split": "heldout",
+      "gold": 3,
+      "predicted": 3,
+      "correct": 3,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "1806-final-s10",
+      "split": "dev",
+      "gold": 9,
+      "predicted": 9,
+      "correct": 9,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6006-final",
+      "split": "dev",
+      "gold": 9,
+      "predicted": 9,
+      "correct": 9,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6006-quiz1-review",
+      "split": "dev",
+      "gold": 2,
+      "predicted": 2,
+      "correct": 2,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6006-quiz1",
+      "split": "dev",
+      "gold": 8,
+      "predicted": 8,
+      "correct": 8,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6006-quiz2",
+      "split": "heldout",
+      "gold": 5,
+      "predicted": 5,
+      "correct": 5,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6034-final-2008",
+      "split": "dev",
+      "gold": 12,
+      "predicted": 12,
+      "correct": 12,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6034-quiz2-2010",
+      "split": "dev",
+      "gold": 2,
+      "predicted": 2,
+      "correct": 2,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6034-quiz3-2010",
+      "split": "heldout",
+      "gold": 2,
+      "predicted": 2,
+      "correct": 2,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6041-final-s09",
+      "split": "dev",
+      "gold": 7,
+      "predicted": 7,
+      "correct": 7,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6041-ps2",
+      "split": "heldout",
+      "gold": 6,
+      "predicted": 6,
+      "correct": 6,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6041-quiz1-f10",
+      "split": "dev",
+      "gold": 2,
+      "predicted": 2,
+      "correct": 2,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6041-quiz2-f10",
+      "split": "heldout",
+      "gold": 2,
+      "predicted": 2,
+      "correct": 2,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6041-tutorial-1",
+      "split": "dev",
+      "gold": 3,
+      "predicted": 3,
+      "correct": 3,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6042-final-2006",
+      "split": "heldout",
+      "gold": 7,
+      "predicted": 7,
+      "correct": 7,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6042-final-2008",
+      "split": "dev",
+      "gold": 10,
+      "predicted": 10,
+      "correct": 10,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6042-midterm",
+      "split": "dev",
+      "gold": 8,
+      "predicted": 8,
+      "correct": 8,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6042-recitation-1",
+      "split": "dev",
+      "gold": 1,
+      "predicted": 1,
+      "correct": 1,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6046-final",
+      "split": "dev",
+      "gold": 9,
+      "predicted": 9,
+      "correct": 9,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6046-ps3",
+      "split": "dev",
+      "gold": 1,
+      "predicted": 1,
+      "correct": 1,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6046-quiz1",
+      "split": "dev",
+      "gold": 7,
+      "predicted": 7,
+      "correct": 7,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    },
+    {
+      "name": "6046-quiz2",
+      "split": "heldout",
+      "gold": 6,
+      "predicted": 6,
+      "correct": 6,
+      "merged": [],
+      "cut": [],
+      "missed": [],
+      "extra": 0
+    }
+  ]
+}
