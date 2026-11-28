@@ -1,8 +1,9 @@
 """Where uploaded PDFs live, so ingestion can be re-run on the original file.
 
 `LocalStorage` writes under a directory: fine for development and tests, but a
-Render instance's disk is wiped on every deploy. `R2Storage` talks to Cloudflare
-R2 (or any S3-compatible store) and is what production should use.
+Render instance's disk is wiped on every deploy. `S3Storage` talks to any
+S3-compatible store (Backblaze B2 in production, also AWS S3 or Cloudflare R2)
+and is what production should use.
 """
 
 from functools import lru_cache
@@ -37,20 +38,28 @@ class LocalStorage:
         return self._path(key).read_bytes()
 
 
-class R2Storage:
-    """S3 API client pointed at an R2 bucket. `client` is injectable for tests."""
+class S3Storage:
+    """S3 API client for one bucket. `client` is injectable for tests."""
 
     def __init__(self, bucket: str, client=None):
         self.bucket = bucket
         if client is None:
             import boto3
+            from botocore.config import Config
 
             client = boto3.client(
                 "s3",
-                endpoint_url=settings.r2_endpoint_url,
-                aws_access_key_id=settings.r2_access_key_id,
-                aws_secret_access_key=settings.r2_secret_access_key,
-                region_name="auto",
+                endpoint_url=settings.s3_endpoint_url,
+                region_name=settings.s3_region,
+                aws_access_key_id=settings.s3_access_key_id,
+                aws_secret_access_key=settings.s3_secret_access_key,
+                # Recent boto3 adds CRC checksums to every request by default,
+                # which not every S3-compatible store accepts. Only send them
+                # when an operation requires one.
+                config=Config(
+                    request_checksum_calculation="when_required",
+                    response_checksum_validation="when_required",
+                ),
             )
         self.client = client
 
@@ -63,8 +72,8 @@ class R2Storage:
 
 @lru_cache
 def get_storage() -> Storage:
-    if settings.storage_backend == "r2":
-        if not settings.r2_bucket:
-            raise RuntimeError("STORAGE_BACKEND=r2 needs R2_BUCKET, R2_ENDPOINT_URL and R2 access keys")
-        return R2Storage(settings.r2_bucket)
+    if settings.storage_backend == "s3":
+        if not settings.s3_bucket:
+            raise RuntimeError("STORAGE_BACKEND=s3 needs S3_BUCKET, S3_ENDPOINT_URL, S3_REGION and access keys")
+        return S3Storage(settings.s3_bucket)
     return LocalStorage(settings.storage_dir)

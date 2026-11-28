@@ -37,13 +37,16 @@ class Settings(BaseSettings):
     allowed_origins: str = "*"
 
     # Where uploaded PDFs are kept: "local" (a directory, for development) or
-    # "r2" (Cloudflare R2 through its S3 API, for production).
+    # "s3" (any S3-compatible store, for production). The deployed demo uses
+    # Backblaze B2: endpoint https://s3.<region>.backblazeb2.com, region e.g.
+    # us-west-004, and a B2 application key's keyID / applicationKey as the keys.
     storage_backend: str = "local"
     storage_dir: str = "uploads"
-    r2_bucket: str | None = None
-    r2_endpoint_url: str | None = None  # https://<account id>.r2.cloudflarestorage.com
-    r2_access_key_id: str | None = None
-    r2_secret_access_key: str | None = None
+    s3_bucket: str | None = None
+    s3_endpoint_url: str | None = None  # unset means AWS S3 itself
+    s3_region: str | None = None
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: str | None = None
 
     # Background ingestion. The worker loop runs inside the API process.
     run_worker: bool = True

@@ -4,7 +4,7 @@ import pytest
 
 from app.config import settings
 from app.ingest import storage
-from app.ingest.storage import LocalStorage, R2Storage
+from app.ingest.storage import LocalStorage, S3Storage
 
 
 def test_local_storage_round_trips_and_creates_folders(tmp_path):
@@ -30,20 +30,23 @@ class FakeS3:
         return {"Body": io.BytesIO(self.objects[(Bucket, Key)][0])}
 
 
-def test_r2_storage_writes_pdfs_to_the_bucket():
+def test_s3_storage_writes_pdfs_to_the_bucket():
     s3 = FakeS3()
-    store = R2Storage("exams", client=s3)
+    store = S3Storage("exams", client=s3)
     store.put("documents/7.pdf", b"pdf")
     assert s3.objects[("exams", "documents/7.pdf")] == (b"pdf", "application/pdf")
     assert store.get("documents/7.pdf") == b"pdf"
 
 
-def test_r2_storage_builds_an_s3_client_for_the_r2_endpoint(monkeypatch):
-    monkeypatch.setattr(settings, "r2_endpoint_url", "https://acct.r2.cloudflarestorage.com")
-    monkeypatch.setattr(settings, "r2_access_key_id", "id")
-    monkeypatch.setattr(settings, "r2_secret_access_key", "secret")
-    store = R2Storage("exams")
-    assert store.client.meta.endpoint_url == "https://acct.r2.cloudflarestorage.com"
+def test_s3_storage_builds_a_client_for_the_configured_endpoint(monkeypatch):
+    monkeypatch.setattr(settings, "s3_endpoint_url", "https://s3.us-west-004.backblazeb2.com")
+    monkeypatch.setattr(settings, "s3_region", "us-west-004")
+    monkeypatch.setattr(settings, "s3_access_key_id", "id")
+    monkeypatch.setattr(settings, "s3_secret_access_key", "secret")
+    client = S3Storage("exams").client
+    assert client.meta.endpoint_url == "https://s3.us-west-004.backblazeb2.com"
+    assert client.meta.region_name == "us-west-004"
+    assert client.meta.config.request_checksum_calculation == "when_required"
 
 
 @pytest.fixture
@@ -57,15 +60,15 @@ def test_get_storage_defaults_to_local(fresh_storage):
     assert isinstance(storage.get_storage(), LocalStorage)
 
 
-def test_get_storage_uses_r2_when_configured(monkeypatch, fresh_storage):
-    monkeypatch.setattr(settings, "storage_backend", "r2")
-    monkeypatch.setattr(settings, "r2_bucket", "exams")
-    monkeypatch.setattr(settings, "r2_endpoint_url", "https://acct.r2.cloudflarestorage.com")
-    assert isinstance(storage.get_storage(), R2Storage)
+def test_get_storage_uses_s3_when_configured(monkeypatch, fresh_storage):
+    monkeypatch.setattr(settings, "storage_backend", "s3")
+    monkeypatch.setattr(settings, "s3_bucket", "exams")
+    monkeypatch.setattr(settings, "s3_endpoint_url", "https://s3.us-west-004.backblazeb2.com")
+    assert isinstance(storage.get_storage(), S3Storage)
 
 
-def test_get_storage_needs_a_bucket_for_r2(monkeypatch, fresh_storage):
-    monkeypatch.setattr(settings, "storage_backend", "r2")
-    monkeypatch.setattr(settings, "r2_bucket", None)
-    with pytest.raises(RuntimeError, match="R2_BUCKET"):
+def test_get_storage_needs_a_bucket_for_s3(monkeypatch, fresh_storage):
+    monkeypatch.setattr(settings, "storage_backend", "s3")
+    monkeypatch.setattr(settings, "s3_bucket", None)
+    with pytest.raises(RuntimeError, match="S3_BUCKET"):
         storage.get_storage()

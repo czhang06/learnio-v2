@@ -30,9 +30,9 @@ Set `GEMINI_API_KEY` to enable LLM topic tagging; without it, questions are tagg
 
 | Setting | Default | Purpose |
 |---|---|---|
-| `STORAGE_BACKEND` | `local` | `local` (a directory) or `r2` (Cloudflare R2). Use `r2` in production: Render's disk is wiped on deploy |
+| `STORAGE_BACKEND` | `local` | `local` (a directory) or `s3` (any S3-compatible store; the demo uses Backblaze B2). Use `s3` in production: Render's disk is wiped on deploy |
 | `STORAGE_DIR` | `uploads` | Directory for `local` storage |
-| `R2_BUCKET`, `R2_ENDPOINT_URL`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | | R2 bucket and S3 API credentials |
+| `S3_BUCKET`, `S3_ENDPOINT_URL`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | | Bucket, endpoint (leave unset for AWS S3) and credentials |
 | `AUTO_PUBLISH` | `true` | Publish as soon as a job finishes, skipping review |
 | `RUN_WORKER` | `true` | Run the worker loop in the API process |
 | `WORKER_POLL_SECONDS`, `JOB_TIMEOUT_SECONDS`, `MAX_ATTEMPTS` | `2`, `600`, `3` | Polling interval; when a stuck job is claimed again; when to give up |
