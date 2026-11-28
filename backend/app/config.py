@@ -36,6 +36,29 @@ class Settings(BaseSettings):
     # deployed frontend origin the moment either of those changes.
     allowed_origins: str = "*"
 
+    # Where uploaded PDFs are kept: "local" (a directory, for development) or
+    # "s3" (any S3-compatible store, for production). The deployed demo uses
+    # Backblaze B2: endpoint https://s3.<region>.backblazeb2.com, region e.g.
+    # us-west-004, and a B2 application key's keyID / applicationKey as the keys.
+    storage_backend: str = "local"
+    storage_dir: str = "uploads"
+    s3_bucket: str | None = None
+    s3_endpoint_url: str | None = None  # unset means AWS S3 itself
+    s3_region: str | None = None
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: str | None = None
+
+    # Background ingestion. The worker loop runs inside the API process.
+    run_worker: bool = True
+    worker_poll_seconds: float = 2.0
+    job_timeout_seconds: int = 600  # a job processing longer than this is claimed again
+    max_attempts: int = 3
+    # Publish straight after ingestion instead of waiting in needs_review.
+    # On until the admin review screen exists.
+    auto_publish: bool = True
+    # Process uploads inside the request, before responding (tests only).
+    ingest_inline: bool = False
+
     @property
     def sqlalchemy_url(self) -> str:
         """The database URL with a driver SQLAlchemy can actually load."""

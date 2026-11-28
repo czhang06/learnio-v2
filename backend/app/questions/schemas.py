@@ -1,0 +1,13 @@
+from pydantic import BaseModel, ConfigDict
+
+
+class QuestionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    text: str
+    topics: list[str]
+
+
+class QuestionPage(BaseModel):
+    items: list[QuestionOut]
+    next_cursor: int | None = None

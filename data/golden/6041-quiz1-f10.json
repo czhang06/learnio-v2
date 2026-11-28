@@ -1,0 +1,16 @@
+{
+  "pdf": "6-041-probabilistic-systems-analysis-and-applied-probability-fall-2010/quiz1-f10.pdf",
+  "notes": "Two problems with numbered parts; parts belong to their problem. Each part is then repeated on its own answer page: those copies are duplicates, not new questions. A formula sheet of distributions precedes the problems.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Jon and Stephen cannot help but think about their commutes",
+      "end": "probability that Jon waited 3 minutes for his train?"
+    },
+    {
+      "number": "2",
+      "start": "For each one of the statements below, give either a proof or a counterexample",
+      "end": "Then, var(X + Y ) \u2265 var(X)."
+    }
+  ]
+}

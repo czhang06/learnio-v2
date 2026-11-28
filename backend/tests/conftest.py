@@ -1,10 +1,17 @@
 """Shared fixtures. Runs against a real PostgreSQL given by DATABASE_URL."""
 
 import os
+import tempfile
 
 DATABASE_URL = os.environ.setdefault(
     "DATABASE_URL", "postgresql+psycopg://learnio:learnio@localhost:5432/learnio"
 )
+# No background loop in tests: uploads are processed inside the request, and
+# tests of the worker itself call worker.run_once() directly.
+os.environ["RUN_WORKER"] = "false"
+os.environ["INGEST_INLINE"] = "true"
+os.environ["STORAGE_BACKEND"] = "local"
+os.environ["STORAGE_DIR"] = tempfile.mkdtemp(prefix="learnio-uploads-")
 
 import itertools  # noqa: E402
 
@@ -17,7 +24,7 @@ from app import models  # noqa: E402,F401  (registers tables on Base.metadata)
 from app.db import Base, get_session  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Course, Question, Topic  # noqa: E402
-from app.services.segmenter import text_hash  # noqa: E402
+from app.ingest.segmenter import text_hash  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -74,15 +81,14 @@ def make_course(db_session):
 
 @pytest.fixture
 def add_questions(db_session):
-    """add_questions(course, count, topics=(), difficulty=3) -> list of question ids.
+    """add_questions(course, count, topics=()) -> list of question ids.
 
-    `difficulty` may be an int or a list that is cycled over the new questions.
     Every question gets unique text, so nothing collides on (course_id, text_hash).
     Returned ids are in insertion (= ascending id) order.
     """
     counter = itertools.count(1)
 
-    def _add(course, count=1, *, topics=(), difficulty=3):
+    def _add(course, count=1, *, topics=()):
         topic_rows = []
         if topics:
             topic_rows = list(
@@ -91,7 +97,6 @@ def add_questions(db_session):
                 )
             )
             assert len(topic_rows) == len(set(topics)), "unknown topic in fixture call"
-        difficulties = itertools.cycle([difficulty] if isinstance(difficulty, int) else difficulty)
         rows = []
         for _ in range(count):
             body = f"Seeded question number {next(counter)} about something testable"
@@ -100,7 +105,6 @@ def add_questions(db_session):
                     course_id=course.id,
                     text=body,
                     text_hash=text_hash(body),
-                    difficulty=next(difficulties),
                     topics=list(topic_rows),
                 )
             )

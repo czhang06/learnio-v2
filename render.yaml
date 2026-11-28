@@ -40,3 +40,22 @@ services:
       # under Upload). Use a long random string. Leave unset to allow writes.
       - key: ADMIN_KEY
         sync: false
+      # Uploaded PDFs are kept so ingestion can be re-run. The instance disk
+      # is wiped on every deploy, so production stores them in Backblaze B2
+      # (free: first 10 GB, no card) through its S3-compatible API.
+      # Create a private bucket and an application key limited to it, then set:
+      - key: STORAGE_BACKEND
+        value: s3
+      - key: S3_BUCKET
+        sync: false
+      # Shown on the bucket page, e.g. https://s3.us-west-004.backblazeb2.com
+      - key: S3_ENDPOINT_URL
+        sync: false
+      # The region in that endpoint, e.g. us-west-004
+      - key: S3_REGION
+        sync: false
+      # The application key's keyID and applicationKey
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false

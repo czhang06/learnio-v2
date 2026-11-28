@@ -1,0 +1,41 @@
+{
+  "pdf": "6-046j-design-and-analysis-of-algorithms-spring-2015/quiz1.pdf",
+  "notes": "Numbered lists inside problems (1. MARK-YELLOW...) are not separate questions.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Circle T or F for each of the following statements",
+      "end": "h3(x) 2 2 1 0"
+    },
+    {
+      "number": "2",
+      "start": "Ben Bitdiddle is trying to multiply two polynomials using the FFT",
+      "end": "calculated FFT F and inverse FFT F \u22121 correctly.)"
+    },
+    {
+      "number": "3",
+      "start": "Prof. Gale is developing a new Facebook app",
+      "end": "Use a data structure you have seen in either 6.006 or 6.046 as a building block."
+    },
+    {
+      "number": "4",
+      "start": "Design a data structure to maintain a set S of n distinct integers",
+      "end": "BOTTOM-HALF(S) run in amortized 0 time."
+    },
+    {
+      "number": "5",
+      "start": "This problem will explore how to check the product of two polynomials",
+      "end": "Analyze your algorithm in terms of n and 1/\u03b5."
+    },
+    {
+      "number": "6",
+      "start": "Prof. Child is cooking from her garden",
+      "end": "obtain an O(nm) algorithm to find the tastiest"
+    },
+    {
+      "number": "7",
+      "start": "Finding the median of a sorted array is easy",
+      "end": "Don\u2019t spend too much time on this question!"
+    }
+  ]
+}

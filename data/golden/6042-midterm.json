@@ -1,0 +1,46 @@
+{
+  "pdf": "6-042j-mathematics-for-computer-science-fall-2010/midterm.pdf",
+  "notes": "Problem 1's answer choices are a numbered list (1. ... 5.), not separate questions.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Consider these two propositions",
+      "end": "You can use as many columns as you"
+    },
+    {
+      "number": "2",
+      "start": "Let G0 = 1, G1 = 3, G2 = 9",
+      "end": "Show by induction that Gn \u2264 3n for all n \u2265 0."
+    },
+    {
+      "number": "3",
+      "start": "In the game of Squares and Circles",
+      "end": "if and only if the number of circles initially is odd."
+    },
+    {
+      "number": "4",
+      "start": "Find a number x \u2208{0, 1, . . . , 112} such that 11x \u2261 1 (mod 113)",
+      "end": "Note that 113 is a prime.)"
+    },
+    {
+      "number": "5",
+      "start": "Consider the simple graph G given in figure 1",
+      "end": "finding an MST on H."
+    },
+    {
+      "number": "6",
+      "start": "Let G be a graph with m edges, n vertices, and k components",
+      "end": "number of edges, m)"
+    },
+    {
+      "number": "7",
+      "start": "For the following sum, find an upper and a lower bound",
+      "end": "differ by at most 1."
+    },
+    {
+      "number": "8",
+      "start": "State whether each of the following claims is True or False",
+      "end": "n! is \u0398 (nn)."
+    }
+  ]
+}

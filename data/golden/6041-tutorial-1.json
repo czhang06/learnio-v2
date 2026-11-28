@@ -1,0 +1,21 @@
+{
+  "pdf": "6-041-probabilistic-systems-analysis-and-applied-probability-fall-2010/practice/tutorial-1.pdf",
+  "notes": "Question 2 includes its figure caption.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Let A and B be events such that A \u2282 B",
+      "end": "Can A and B be independent?"
+    },
+    {
+      "number": "2",
+      "start": "An electrical system consists of identical components",
+      "end": "A system of identical components that consists of the three subsystems"
+    },
+    {
+      "number": "3",
+      "start": "The Chess Problem. This year\u2019s Belmont chess champion",
+      "end": "conditional probability that it was Bo who won the first round?"
+    }
+  ]
+}

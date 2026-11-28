@@ -29,12 +29,11 @@ SELECT c.id, 'topic-' || t
 FROM courses c, generate_series(1, :topics_per_course) AS t;
 
 -- course_id = 1 + floor(courses * u^3) skews rows toward low ids.
-INSERT INTO questions (course_id, text, text_hash, difficulty)
+INSERT INTO questions (course_id, text, text_hash)
 SELECT
   1 + floor(:courses * power(random(), 3))::int,
   'Benchmark question ' || g || ': ' || repeat(md5(g::text), 6),
-  md5('q' || g::text),
-  1 + floor(random() * 5)::int
+  md5('q' || g::text)
 FROM generate_series(1, :n) AS g;
 
 -- 1 to 3 topics per question, all from the question's own course.

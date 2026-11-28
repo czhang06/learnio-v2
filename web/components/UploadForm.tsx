@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { DragEvent, FormEvent } from "react";
-import { errorMessage, uploadDocument } from "@/lib/api";
+import { errorMessage, isSettled, uploadDocument, waitForDocument } from "@/lib/api";
 import type { DocumentOut } from "@/lib/api";
 
 interface Props {
@@ -61,11 +61,16 @@ export default function UploadForm({ course, clientId, onUploaded, onViewQuestio
     setError(null);
     setResult(null);
     try {
-      const doc = await uploadDocument(course, kind, clientId, file);
-      setResult(doc);
+      const queued = await uploadDocument(course, kind, clientId, file);
       setFile(null);
       setInputKey((k) => k + 1);
-      onUploaded();
+      const doc = await waitForDocument(queued);
+      if (doc.status === "failed") {
+        setError(doc.error || "Could not read " + doc.filename + ".");
+        return;
+      }
+      setResult(doc);
+      if (doc.status === "published") onUploaded();
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -138,7 +143,18 @@ export default function UploadForm({ course, clientId, onUploaded, onViewQuestio
               {error}
             </p>
           )}
-          {result && (
+          {result && !isSettled(result) && (
+            <p className="notice">
+              {result.filename} is still being processed. Its questions will appear in the bank when it finishes.
+            </p>
+          )}
+          {result && result.status === "needs_review" && (
+            <p className="notice notice-ok">
+              Read {result.filename}: {result.question_count} new question
+              {result.question_count === 1 ? "" : "s"} found, waiting for review before they are added.
+            </p>
+          )}
+          {result && result.status === "published" && (
             <p className="notice notice-ok">
               Uploaded {result.filename}.{" "}
               {result.question_count === 0

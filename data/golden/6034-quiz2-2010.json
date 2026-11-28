@@ -1,0 +1,16 @@
+{
+  "pdf": "6-034-artificial-intelligence-fall-2010/quiz2-2010.pdf",
+  "notes": "Two 50-point problems; lettered parts and numbered constraint lists belong to them. Tear-off sheets repeat labels like \"Problem 1, Part B\" but are not questions.",
+  "questions": [
+    {
+      "number": "1",
+      "start": "Perform the minimax algorithm, without alpha-beta, on this tree",
+      "end": "make your decision."
+    },
+    {
+      "number": "2",
+      "start": "Two of your TA's, Martin and Kenny were given the task",
+      "end": "how might we adjust the search to find solutions with less backtracking?"
+    }
+  ]
+}

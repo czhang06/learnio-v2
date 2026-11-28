@@ -24,6 +24,19 @@ uvicorn app.main:app --reload
 
 Set `GEMINI_API_KEY` to enable LLM topic tagging; without it, questions are tagged by keyword match against the course's topics.
 
+### Uploads run in the background
+
+`POST /api/documents` checks the file, stores the PDF and returns `202` with a queued document. A worker loop inside the API process (Render's free plan has no separate worker service) claims jobs from the `documents` table with `FOR UPDATE SKIP LOCKED` and moves each through `queued → processing → needs_review → published`, or `failed` with an error message. Questions wait in `draft_questions` until their document is published, so listing and exam sampling never see unreviewed rows.
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `STORAGE_BACKEND` | `local` | `local` (a directory) or `s3` (any S3-compatible store; the demo uses Backblaze B2). Use `s3` in production: Render's disk is wiped on deploy |
+| `STORAGE_DIR` | `uploads` | Directory for `local` storage |
+| `S3_BUCKET`, `S3_ENDPOINT_URL`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | | Bucket, endpoint (leave unset for AWS S3) and credentials |
+| `AUTO_PUBLISH` | `true` | Publish as soon as a job finishes, skipping review |
+| `RUN_WORKER` | `true` | Run the worker loop in the API process |
+| `WORKER_POLL_SECONDS`, `JOB_TIMEOUT_SECONDS`, `MAX_ATTEMPTS` | `2`, `600`, `3` | Polling interval; when a stuck job is claimed again; when to give up |
+
 ## API
 
 | Method | Path | Purpose |
@@ -31,8 +44,12 @@ Set `GEMINI_API_KEY` to enable LLM topic tagging; without it, questions are tagg
 | POST | `/api/courses` | Create a course with its topics |
 | GET | `/api/courses` | List courses |
 | GET | `/api/courses/{code}/topics` | List a course's topics |
-| POST | `/api/documents` | Upload an exam/syllabus PDF (multipart) |
-| GET | `/api/questions` | List questions (filter by topic/difficulty, paginate) |
+| POST | `/api/documents` | Upload an exam/syllabus PDF (multipart); returns 202 and queues it |
+| GET | `/api/documents/{id}` | Ingestion status, question count and error |
+| GET | `/api/documents/{id}/drafts` | Questions found, before publishing |
+| POST | `/api/documents/{id}/publish` | Add a reviewed document's questions to the bank |
+| POST | `/api/documents/{id}/retry` | Re-run a failed document from its stored PDF |
+| GET | `/api/questions` | List questions (filter by topic, paginate) |
 | POST | `/api/exams` | Generate a practice exam |
 | GET | `/api/health` | Health check |
 
