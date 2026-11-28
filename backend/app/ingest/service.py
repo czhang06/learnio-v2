@@ -1,3 +1,5 @@
+import logging
+
 import fitz  # PyMuPDF
 from fastapi import HTTPException
 from sqlalchemy import select, update
@@ -8,6 +10,8 @@ from ..config import settings
 from ..deps import get_course
 from ..models import Document, DocumentStatus, Question, Topic, UsageEvent, question_topics
 from .storage import get_storage
+
+log = logging.getLogger(__name__)
 
 
 def get_document(session: Session, document_id: int) -> Document:
@@ -42,7 +46,12 @@ def upload_document(
     session.add(doc)
     session.flush()
     doc.storage_key = f"documents/{doc.id}.pdf"
-    get_storage().put(doc.storage_key, data)
+    try:
+        get_storage().put(doc.storage_key, data)
+    except Exception as exc:  # misconfigured bucket, bad keys, storage outage
+        log.exception("Storing %s failed", doc.storage_key)
+        session.rollback()
+        raise HTTPException(503, f"Could not save the PDF to storage ({exc.__class__.__name__}: {exc})") from exc
     session.add(UsageEvent(kind="upload", client_id=client_id))
     session.commit()
 

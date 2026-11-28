@@ -47,9 +47,14 @@ class S3Storage:
             import boto3
             from botocore.config import Config
 
+            endpoint = settings.s3_endpoint_url
+            if endpoint and "://" not in endpoint:
+                # Dashboards show the bare host ("s3.us-west-004.backblazeb2.com");
+                # boto3 rejects an endpoint without a scheme.
+                endpoint = "https://" + endpoint
             client = boto3.client(
                 "s3",
-                endpoint_url=settings.s3_endpoint_url,
+                endpoint_url=endpoint,
                 region_name=settings.s3_region,
                 aws_access_key_id=settings.s3_access_key_id,
                 aws_secret_access_key=settings.s3_secret_access_key,
