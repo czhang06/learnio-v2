@@ -240,3 +240,37 @@ def test_app_starts_and_stops_the_worker(monkeypatch):
     monkeypatch.setattr(settings, "worker_poll_seconds", 0.01)
     with TestClient(app) as c:
         assert c.get("/api/health").json() == {"status": "ok"}
+
+
+def test_storage_failure_returns_a_readable_error(client, make_course, db_session, monkeypatch):
+    from app.ingest import service
+
+    class BrokenStorage:
+        def put(self, key, data):
+            raise PermissionError("InvalidAccessKeyId")
+
+    monkeypatch.setattr(service, "get_storage", lambda: BrokenStorage())
+    make_course()
+    r = upload(client, make_pdf())
+    assert r.status_code == 503
+    assert "InvalidAccessKeyId" in r.json()["detail"]
+    assert db_session.scalars(select(Document)).all() == []
+
+
+def test_unexpected_errors_keep_cors_headers(client, make_course, monkeypatch):
+    from app.ingest import service
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("unexpected")
+
+    monkeypatch.setattr(service, "upload_document", boom)
+    make_course()
+    r = client.post(
+        "/api/documents",
+        data={"course_code": "CS101"},
+        files={"file": ("exam.pdf", make_pdf(), "application/pdf")},
+        headers={"Origin": "https://learnio.example"},
+    )
+    assert r.status_code == 500
+    assert r.headers["access-control-allow-origin"] == "*"
+    assert "went wrong" in r.json()["detail"]
