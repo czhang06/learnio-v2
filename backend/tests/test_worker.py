@@ -274,3 +274,21 @@ def test_unexpected_errors_keep_cors_headers(client, make_course, monkeypatch):
     assert r.status_code == 500
     assert r.headers["access-control-allow-origin"] == "*"
     assert "went wrong" in r.json()["detail"]
+
+
+def test_auto_publish_never_commits_the_review_state(client, make_course, queued, factory, db_session, monkeypatch):
+    """Staging and publishing are one transaction: if publishing fails, the job
+    fails as a whole rather than being left visible in needs_review."""
+    from app.ingest import service
+
+    def broken_publish(session, doc):
+        raise RuntimeError("publish failed")
+
+    monkeypatch.setattr(service, "publish_document", broken_publish)
+    make_course()
+    doc_id = upload(client, make_pdf()).json()["id"]
+    worker.run_once(factory)
+    body = status(client, doc_id)
+    assert (body["status"], body["error"]) == ("failed", "publish failed")
+    assert client.get(f"/api/documents/{doc_id}/drafts").json() == []
+    assert questions(client) == []
