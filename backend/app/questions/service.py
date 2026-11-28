@@ -8,7 +8,14 @@ from .schemas import QuestionOut, QuestionPage
 
 def to_out(q: Question) -> QuestionOut:
     image_url = "/api/" + q.image_key if q.image_key else None  # "images/12-3.png" -> "/api/images/12-3.png"
-    return QuestionOut(id=q.id, text=q.text, topics=[t.name for t in q.topics], image_url=image_url)
+    return QuestionOut(
+        id=q.id,
+        text=q.text,
+        topics=[t.name for t in q.topics],
+        image_url=image_url,
+        image_width=q.image_width if image_url else None,
+        image_height=q.image_height if image_url else None,
+    )
 
 
 def list_questions(

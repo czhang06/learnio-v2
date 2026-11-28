@@ -27,6 +27,7 @@ export default function Home() {
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [coursesError, setCoursesError] = useState<string | null>(null);
   const [topics, setTopics] = useState<string[]>([]);
+  const [topicsReady, setTopicsReady] = useState(false);
   const [uploads, setUploads] = useState(0);
   const [tab, setTab] = useState<TabId>("questions");
   const [slow, setSlow] = useState(false);
@@ -112,12 +113,16 @@ export default function Home() {
       return;
     }
     let cancelled = false;
+    setTopicsReady(false);
     listTopics(selected)
       .then((t) => {
         if (!cancelled) setTopics(t);
       })
       .catch(() => {
         if (!cancelled) setTopics([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTopicsReady(true);
       });
     return () => {
       cancelled = true;
@@ -146,6 +151,9 @@ export default function Home() {
 
   return (
     <>
+      <a className="skip-link" href={tab === "questions" ? "#question-list" : "#main"}>
+        Skip to {tab === "questions" ? "questions" : "content"}
+      </a>
       <CourseBar
         courses={courses}
         selected={selected}
@@ -156,7 +164,7 @@ export default function Home() {
         canEdit={canEdit}
         following={account.following}
       />
-      <main className="main">
+      <main className="main" id="main" tabIndex={-1}>
         {coursesLoading && slow && (
           <div className="waking" role="status">
             <p className="waking-title">Starting the server</p>
@@ -235,9 +243,11 @@ export default function Home() {
               hidden={tab !== "questions"}
               className="no-print"
             >
-              <QuestionBank course={selected} topics={topics} refreshKey={uploads} onUploadClick={showUpload} />
+              <h2 className="sr-note">Question bank</h2>
+              <QuestionBank course={selected} topics={topics} topicsReady={topicsReady} refreshKey={uploads} onUploadClick={showUpload} />
             </div>
             <div role="tabpanel" id="panel-practice" aria-labelledby="tab-practice" hidden={tab !== "practice"}>
+              <h2 className="sr-note">Practice exam</h2>
               <ExamGenerator course={selected} topics={topics} clientId={clientId} />
             </div>
             <div

@@ -8,15 +8,21 @@ running headers, footers and page numbers, collapses the blank space left for
 answers, and stacks what remains, across page breaks, into one PNG.
 """
 
+import io
 import re
 from collections import Counter
 from dataclasses import dataclass
 
 import fitz  # PyMuPDF
+from PIL import Image, ImageChops
 
 from .pdf_extract import Line
 
-_DPI = 144  # 2x the PDF's 72 points per inch: sharp on high-density screens
+_DPI = 216  # 3x the PDF's 72 points per inch: sharp when shown enlarged on high-density screens
+# How large to show a question, in CSS px per PDF point. Every question is
+# shown at the same scale, so exams with small and large type keep their
+# relative sizes instead of each being stretched to the column width.
+DISPLAY_SCALE = 1.35
 _PAD = 6.0  # points kept around the ink
 _GAP = 10.0  # points between bands that were apart on the page
 _MIN_GAP = 24.0  # blank space taller than this is collapsed
@@ -167,3 +173,33 @@ def _compose(doc, bands: list[_Band], left: float, right: float) -> bytes | None
             page.show_pdf_page(fitz.Rect(0, y, width, y + h), doc, band.page, clip=clip)
             y += h + _GAP
         return page.get_pixmap(dpi=_DPI).tobytes("png")
+
+
+@dataclass
+class WebImage:
+    data: bytes
+    width: int  # pixels
+    height: int
+    media_type: str = "image/webp"
+    extension: str = "webp"
+
+
+def to_web(png: bytes) -> WebImage:
+    """Re-encode a rendered question for the browser: lossless WebP, so text
+    stays exactly as sharp, and greyscale unless the question has colour (a
+    coloured figure). About a third of the PNG's size on exam pages."""
+    with Image.open(io.BytesIO(png)) as source:
+        rgb = source.convert("RGB")
+    r, g, b = rgb.split()
+    colourful = max(ImageChops.difference(r, g).getextrema()[1], ImageChops.difference(g, b).getextrema()[1]) > 48
+    image = rgb if colourful else rgb.convert("L")
+    out = io.BytesIO()
+    image.save(out, "WEBP", lossless=True, method=4)
+    return WebImage(out.getvalue(), image.width, image.height)
+
+
+def display_size(width: int, height: int) -> tuple[int, int]:
+    """The CSS size to show a rendered question at, from its size in pixels:
+    its size in PDF points, scaled by DISPLAY_SCALE."""
+    factor = DISPLAY_SCALE * 72 / _DPI
+    return round(width * factor), round(height * factor)
