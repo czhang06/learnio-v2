@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     ARRAY,
+    CheckConstraint,
     DateTime,
     Float,
     ForeignKey,
@@ -128,3 +129,75 @@ class UsageEvent(Base):
     kind: Mapped[str] = mapped_column(String(32))  # upload | exam_generated | exam_viewed
     client_id: Mapped[str] = mapped_column(String(64), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class User(Base):
+    """Someone signed in through the frontend. `sub` is the identity
+    provider's stable id for them (Google's account id)."""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sub: Mapped[str] = mapped_column(String(255), unique=True)
+    email: Mapped[str] = mapped_column(String(320), default="")
+    name: Mapped[str] = mapped_column(String(200), default="")
+    picture: Mapped[str] = mapped_column(String(500), default="")
+    role: Mapped[str] = mapped_column(String(16), default="user", server_default="user")  # user | admin
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    courses: Mapped[list[Course]] = relationship(secondary="enrollments", order_by="Course.code")
+
+
+enrollments = Table(
+    "enrollments",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("course_id", ForeignKey("courses.id", ondelete="CASCADE"), primary_key=True),
+    Column("created_at", DateTime(timezone=True), server_default=func.now()),
+)
+
+saved_questions = Table(
+    "saved_questions",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("question_id", ForeignKey("questions.id", ondelete="CASCADE"), primary_key=True),
+    Column("created_at", DateTime(timezone=True), server_default=func.now()),
+)
+
+
+class Attempt(Base):
+    """A practice exam generated for a signed-in user."""
+
+    __tablename__ = "attempts"
+    __table_args__ = (Index("ix_attempts_user_course", "user_id", "course_id", "created_at"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id", ondelete="CASCADE"))
+    topics: Mapped[list[str]] = mapped_column(ARRAY(String(120)), default=list, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    course: Mapped[Course] = relationship()
+    answers: Mapped[list["AttemptAnswer"]] = relationship(
+        back_populates="attempt", order_by="AttemptAnswer.position", cascade="all, delete-orphan"
+    )
+
+
+class AttemptAnswer(Base):
+    """One question of an attempt and how the user marked themselves on it."""
+
+    __tablename__ = "attempt_answers"
+    __table_args__ = (
+        CheckConstraint("result IN ('right', 'wrong', 'skipped')", name="ck_attempt_answers_result"),
+        Index("ix_attempt_answers_question", "question_id"),
+    )
+
+    attempt_id: Mapped[int] = mapped_column(ForeignKey("attempts.id", ondelete="CASCADE"), primary_key=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id", ondelete="CASCADE"), primary_key=True)
+    position: Mapped[int] = mapped_column(Integer)
+    result: Mapped[str | None] = mapped_column(String(8))  # right | wrong | skipped; None until marked
+
+    attempt: Mapped[Attempt] = relationship(back_populates="answers")
+    question: Mapped[Question] = relationship()

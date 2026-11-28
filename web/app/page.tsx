@@ -10,6 +10,7 @@ import ExamGenerator from "@/components/ExamGenerator";
 import { errorMessage, getMode, listCourses, listTopics } from "@/lib/api";
 import type { Course } from "@/lib/api";
 import { getAdminKey } from "@/lib/adminKey";
+import { useAccount } from "@/lib/account";
 import { getClientId } from "@/lib/clientId";
 
 const TABS = [
@@ -33,6 +34,9 @@ export default function Home() {
   const [readOnly, setReadOnly] = useState<boolean | null>(null);
   const [hasKey, setHasKey] = useState(false);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const account = useAccount();
+  const picked = useRef(false); // set once the visitor chooses a course themselves
+  const [followBusy, setFollowBusy] = useState(false);
 
   useEffect(() => {
     setClientId(getClientId());
@@ -53,7 +57,28 @@ export default function Home() {
     };
   }, []);
 
-  const canEdit = readOnly === false || hasKey;
+  const canEdit = readOnly === false || hasKey || account.me?.is_admin === true;
+
+  // Signed-in visitors land on one of their own courses.
+  useEffect(() => {
+    const mine = account.me?.courses ?? [];
+    if (picked.current || mine.length === 0) return;
+    setSelected((cur) => (mine.some((c) => c.code === cur) ? cur : mine[0].code));
+  }, [account.me]);
+
+  const choose = useCallback((code: string) => {
+    picked.current = true;
+    setSelected(code);
+  }, []);
+
+  async function toggleFollow(code: string) {
+    setFollowBusy(true);
+    try {
+      await account.follow(code, !account.following.has(code));
+    } finally {
+      setFollowBusy(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -126,9 +151,10 @@ export default function Home() {
         selected={selected}
         loading={coursesLoading}
         error={coursesError}
-        onSelect={setSelected}
+        onSelect={choose}
         onCreated={onCreated}
         canEdit={canEdit}
+        following={account.following}
       />
       <main className="main">
         {coursesLoading && slow && (
@@ -167,6 +193,17 @@ export default function Home() {
             <header className="course-head no-print">
               <h1 className="course-code">{course.code}</h1>
               {course.name && <p className="course-name">{course.name}</p>}
+              {account.status === "signed-in" && (
+                <button
+                  type="button"
+                  className="btn-quiet btn-small follow-button"
+                  aria-pressed={account.following.has(course.code)}
+                  disabled={followBusy}
+                  onClick={() => toggleFollow(course.code)}
+                >
+                  {account.following.has(course.code) ? "Following" : "Follow this course"}
+                </button>
+              )}
             </header>
 
             <div className="tabs no-print" role="tablist" aria-label={course.code} onKeyDown={onTabKey}>

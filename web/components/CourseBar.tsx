@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { FormEvent } from "react";
+import AccountMenu from "@/components/AccountMenu";
 import { createCourse, errorMessage } from "@/lib/api";
 import type { Course } from "@/lib/api";
 
@@ -15,9 +16,12 @@ interface Props {
   onCreated: (course: Course) => void;
   /** False on the read-only demo: the Add course control is hidden. */
   canEdit: boolean;
+  /** Codes of the courses the signed-in user follows; listed first. */
+  following: Set<string>;
 }
 
-export default function CourseBar({ courses, selected, loading, error, onSelect, onCreated, canEdit }: Props) {
+export default function CourseBar({ courses, selected, loading, error, onSelect, onCreated, canEdit, following }: Props) {
+  const ordered = [...courses.filter((c) => following.has(c.code)), ...courses.filter((c) => !following.has(c.code))];
   const [adding, setAdding] = useState(false);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -56,8 +60,8 @@ export default function CourseBar({ courses, selected, loading, error, onSelect,
           {loading && <span className="topbar-note">Loading courses…</span>}
           {error && <span className="topbar-note">Courses unavailable</span>}
           <ul className="course-list">
-            {courses.map((c) => (
-              <li key={c.id}>
+            {ordered.map((c, i) => (
+              <li key={c.id} className={i > 0 && following.has(ordered[i - 1].code) && !following.has(c.code) ? "course-list-rest" : undefined}>
                 <button
                   type="button"
                   className="course-link"
@@ -66,6 +70,7 @@ export default function CourseBar({ courses, selected, loading, error, onSelect,
                   onClick={() => onSelect(c.code)}
                 >
                   {c.code}
+                  {following.has(c.code) && <span className="sr-note"> (following)</span>}
                 </button>
               </li>
             ))}
@@ -76,6 +81,8 @@ export default function CourseBar({ courses, selected, loading, error, onSelect,
           <span className="wide-only">How it works</span>
           <span className="narrow-only">Help</span>
         </Link>
+
+        <AccountMenu />
 
         {canEdit && (
           <div className="add">

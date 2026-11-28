@@ -50,6 +50,40 @@ export function isSettled(doc: DocumentOut): boolean {
 export interface Exam {
   course_code: string;
   questions: Question[];
+  /** Set for signed-in users: the attempt to mark answers against. */
+  attempt_id?: number | null;
+}
+
+export type Result = "right" | "wrong" | "skipped";
+
+export interface Tally {
+  right: number;
+  wrong: number;
+  skipped: number;
+  unmarked: number;
+}
+
+export interface AttemptSummary {
+  id: number;
+  course_code: string;
+  created_at: string;
+  submitted_at: string | null;
+  tally: Tally;
+}
+
+export interface Attempt extends AttemptSummary {
+  topics: string[];
+  questions: (Question & { result: Result | null })[];
+  by_topic: { topic: string; right: number; wrong: number }[];
+}
+
+export interface Me {
+  id: number;
+  email: string;
+  name: string;
+  picture: string;
+  is_admin: boolean;
+  courses: Course[];
 }
 
 export interface ExamParams {
@@ -85,10 +119,19 @@ function describeDetail(detail: unknown): string | null {
   return null;
 }
 
+let apiToken: string | null = null;
+
+/** The signed-in user's API token (from the NextAuth session), or null for guests. */
+export function setApiToken(token: string | null): void {
+  apiToken = token;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
+  const headers = new Headers(init?.headers);
+  if (apiToken && !headers.has("Authorization")) headers.set("Authorization", "Bearer " + apiToken);
   try {
-    res = await fetch(API_URL + path, init);
+    res = await fetch(API_URL + path, { ...init, headers });
   } catch {
     throw new ApiError("Could not reach the API at " + API_URL, 0);
   }
@@ -105,6 +148,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new ApiError(message, res.status);
   }
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
@@ -205,4 +249,44 @@ export function generateExam(params: ExamParams, clientId: string): Promise<Exam
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
   });
+}
+
+export function getMe(): Promise<Me> {
+  return request<Me>("/api/me");
+}
+
+export function setFollowing(code: string, follow: boolean): Promise<void> {
+  return request<void>("/api/me/courses/" + encodeURIComponent(code), { method: follow ? "PUT" : "DELETE" });
+}
+
+export function listSaved(courseCode?: string): Promise<Question[]> {
+  return request<Question[]>("/api/me/saved" + (courseCode ? "?course_code=" + encodeURIComponent(courseCode) : ""));
+}
+
+export function setSaved(questionId: number, saved: boolean): Promise<void> {
+  return request<void>("/api/me/saved/" + questionId, { method: saved ? "PUT" : "DELETE" });
+}
+
+export function markAnswer(attemptId: number, questionId: number, result: Result | null): Promise<void> {
+  return request<void>("/api/attempts/" + attemptId + "/answers/" + questionId, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ result }),
+  });
+}
+
+export function submitAttempt(attemptId: number): Promise<Attempt> {
+  return request<Attempt>("/api/attempts/" + attemptId + "/submit", { method: "POST" });
+}
+
+export function getAttempt(attemptId: number): Promise<Attempt> {
+  return request<Attempt>("/api/attempts/" + attemptId);
+}
+
+export function listAttempts(courseCode: string): Promise<AttemptSummary[]> {
+  return request<AttemptSummary[]>("/api/attempts?course_code=" + encodeURIComponent(courseCode));
+}
+
+export function retryAttempt(attemptId: number): Promise<Exam> {
+  return request<Exam>("/api/attempts/" + attemptId + "/retry", { method: "POST" });
 }

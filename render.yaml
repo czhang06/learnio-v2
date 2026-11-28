@@ -44,6 +44,14 @@ services:
       # is wiped on every deploy, so production stores them in Backblaze B2
       # (free: first 10 GB, no card) through its S3-compatible API.
       # Create a private bucket and an application key limited to it, then set:
+      # Accounts: the same random value as AUTH_API_SECRET in Vercel. The
+      # frontend signs session tokens with it; the API verifies them.
+      # Leave unset to run without accounts (everyone is a guest).
+      - key: AUTH_API_SECRET
+        sync: false
+      # Comma-separated emails whose accounts are admins (uploads, new courses).
+      - key: ADMIN_EMAILS
+        sync: false
       - key: STORAGE_BACKEND
         value: s3
       - key: S3_BUCKET

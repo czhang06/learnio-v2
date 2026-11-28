@@ -24,6 +24,27 @@ uvicorn app.main:app --reload
 
 Set `GEMINI_API_KEY` to enable LLM topic tagging; without it, questions are tagged by keyword match against the course's topics.
 
+### Accounts
+
+Visitors can browse and generate exams as guests. Signing in, with Google through NextAuth in the Next.js app, adds the following:
+
+- following courses, which are listed first;
+- saving questions;
+- practice exams recorded as attempts: you mark each question right, wrong or skipped, see results by topic, and retry the ones you missed;
+- exams weighted toward the topics you get wrong and away from questions you saw in the last two weeks.
+
+The API lives on another domain, so the frontend signs a 15-minute token for it with `AUTH_API_SECRET`, a secret both sides share. The API verifies that token. Accounts whose email is in `ADMIN_EMAILS` can add courses and upload. `ADMIN_KEY` still works for scripts.
+
+| Where | Setting | Value |
+|---|---|---|
+| Vercel | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | From a Google Cloud OAuth client (web application). Its redirect URI is `https://<your domain>/api/auth/callback/google` |
+| Vercel | `NEXTAUTH_SECRET` | A long random string |
+| Vercel | `NEXTAUTH_URL` | The site's public URL, e.g. `https://learnio.vercel.app` |
+| Vercel and Render | `AUTH_API_SECRET` | The same long random string in both, at least 32 characters |
+| Render | `ADMIN_EMAILS` | Comma-separated admin emails |
+
+For local testing without Google, run the frontend with `AUTH_DEV_LOGIN=1` (`next dev` only). The sign-in page then offers a username-only test account. It can never be enabled in a production build.
+
 ### Questions are shown as printed
 
 Ingestion also crops each question's region out of its PDF: text, drawn figures and embedded images, without running headers, page numbers or the blank space left for answers, across page breaks. The PNG is kept in the PDF store and served at `GET /api/images/{name}` (each question's `image_url`), so matrices, fractions and diagrams stay readable. The extracted text is still stored for search, deduplication and topic tagging, and the app offers it under "Show as text".
@@ -49,6 +70,12 @@ Ingestion also crops each question's region out of its PDF: text, drawn figures 
 | GET | `/api/courses` | List courses |
 | GET | `/api/courses/{code}/topics` | List a course's topics |
 | POST | `/api/documents` | Upload an exam/syllabus PDF (multipart); returns 202 and queues it |
+| GET | `/api/me` | The signed-in user, their followed courses and admin flag |
+| PUT/DELETE | `/api/me/courses/{code}` | Follow or unfollow a course |
+| GET, PUT/DELETE | `/api/me/saved`, `/api/me/saved/{id}` | Saved questions |
+| GET | `/api/attempts`, `/api/attempts/{id}` | Past practice exams and their results |
+| PUT | `/api/attempts/{id}/answers/{question}` | Mark a question right, wrong or skipped |
+| POST | `/api/attempts/{id}/submit`, `/api/attempts/{id}/retry` | Finish an attempt; start one from its misses |
 | GET | `/api/images/{name}` | A question's image, as linked from its `image_url` |
 | GET | `/api/documents/{id}` | Ingestion status, question count and error |
 | GET | `/api/documents/{id}/drafts` | Questions found, before publishing |

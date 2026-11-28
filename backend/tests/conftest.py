@@ -12,6 +12,7 @@ os.environ["RUN_WORKER"] = "false"
 os.environ["INGEST_INLINE"] = "true"
 os.environ["STORAGE_BACKEND"] = "local"
 os.environ["STORAGE_DIR"] = tempfile.mkdtemp(prefix="learnio-uploads-")
+os.environ["AUTH_API_SECRET"] = "test-secret-0123456789abcdef-0123456789"
 
 import itertools  # noqa: E402
 
@@ -113,3 +114,26 @@ def add_questions(db_session):
         return [r.id for r in rows]
 
     return _add
+
+
+@pytest.fixture
+def token():
+    """token(sub="u1", email="a@example.com", **claims) -> Authorization headers
+    for a session token as the frontend mints it."""
+    import time
+
+    import jwt
+
+    def _make(sub="u1", email="a@example.com", *, secret="test-secret-0123456789abcdef-0123456789", expires_in=300, **claims):
+        payload = {
+            "sub": sub,
+            "email": email,
+            "name": claims.pop("name", sub),
+            "iss": "learnio-web",
+            "aud": "learnio-api",
+            "exp": int(time.time()) + expires_in,
+            **claims,
+        }
+        return {"Authorization": "Bearer " + jwt.encode(payload, secret, algorithm="HS256")}
+
+    return _make
