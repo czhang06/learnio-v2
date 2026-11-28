@@ -1,41 +1,51 @@
 "use client";
 
 import type { KeyboardEvent } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import QuestionItem from "@/components/QuestionItem";
-import { errorMessage, listQuestions } from "@/lib/api";
-import type { Question } from "@/lib/api";
+import { errorMessage, listQuestions, listTopics } from "@/lib/api";
+import type { Question, QuestionPage } from "@/lib/api";
+import { coursePath } from "@/lib/courses";
 
 interface Props {
   course: string;
-  topics: string[];
-  /** False while the course's topics load: their space is held so nothing jumps. */
-  topicsReady: boolean;
-  refreshKey: number;
-  onUploadClick: () => void;
+  /** From the server; null if it could not load them, then they load here. */
+  topics: string[] | null;
+  /** The topic filter, from the URL (?topic=). "" for all topics. */
+  topic: string;
+  /** The first page of questions, from the server; null to load it here. */
+  initial: QuestionPage | null;
 }
 
-export default function QuestionBank({ course, topics, topicsReady, refreshKey, onUploadClick }: Props) {
-  const [topic, setTopic] = useState("");
-  const [items, setItems] = useState<Question[]>([]);
-  const [cursor, setCursor] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+/**
+ * The question bank. The first page arrives with the HTML; the topic filter
+ * lives in the URL, so a filtered bank can be refreshed, shared and reached
+ * with the back button. Changing it asks the server for the new first page;
+ * "Show more" pages are loaded here.
+ */
+export default function QuestionBank({ course, topics: serverTopics, topic, initial }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [topics, setTopics] = useState<string[] | null>(serverTopics);
+  const [items, setItems] = useState<Question[]>(initial?.items ?? []);
+  const [cursor, setCursor] = useState<number | null>(initial?.next_cursor ?? null);
+  const [loading, setLoading] = useState(initial === null);
+  const [loaded, setLoaded] = useState(initial !== null);
   const [error, setError] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  // The filter shows the newly picked topic at once, while its questions load.
+  const [picked, setPicked] = useState(topic);
+  const [changing, startChange] = useTransition();
   const seq = useRef(0);
 
   const load = useCallback(
     async (after: number | null) => {
-      if (!course) return;
       const my = ++seq.current;
       setLoading(true);
       setError(null);
       try {
-        const page = await listQuestions({
-          courseCode: course,
-          topic: topic || undefined,
-          after,
-        });
+        const page = await listQuestions({ courseCode: course, topic: topic || undefined, after });
         if (my !== seq.current) return;
         setItems((prev) => (after === null ? page.items : prev.concat(page.items)));
         setCursor(page.next_cursor ?? null);
@@ -50,40 +60,48 @@ export default function QuestionBank({ course, topics, topicsReady, refreshKey, 
     [course, topic]
   );
 
-  // Reset the topic filter when the course changes.
+  // The server could not load them in time (the API was waking up): load here.
   useEffect(() => {
-    setTopic("");
-  }, [course]);
-
-  // Reload from the start whenever the filters, course or upload counter change.
+    if (initial === null) void load(null);
+  }, [initial, load]);
   useEffect(() => {
-    setItems([]);
-    setCursor(null);
-    setLoaded(false);
-    if (course) {
-      void load(null);
-    }
-  }, [load, course, refreshKey]);
+    if (serverTopics !== null) return;
+    let cancelled = false;
+    listTopics(course)
+      .then((t) => !cancelled && setTopics(t))
+      .catch(() => !cancelled && setTopics([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [course, serverTopics]);
 
-  const filtered = topic !== "";
-  const options = [""].concat(topics);
+  function choose(next: string) {
+    setPicked(next);
+    const query = next ? "?topic=" + encodeURIComponent(next) : "";
+    startChange(() => router.replace(pathname + query, { scroll: false }));
+  }
 
+  const options = [""].concat(topics ?? []);
   function onTopicKey(e: KeyboardEvent<HTMLDivElement>) {
     const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
     if (!step && e.key !== "Home" && e.key !== "End") return;
     e.preventDefault();
-    const i = options.indexOf(topic);
+    const i = options.indexOf(picked);
     const next = e.key === "Home" ? 0 : e.key === "End" ? options.length - 1 : (i + (step ?? 0) + options.length) % options.length;
-    setTopic(options[next]);
+    choose(options[next]);
     const group = e.currentTarget;
     requestAnimationFrame(() => (group.querySelectorAll("button")[next] as HTMLButtonElement | undefined)?.focus());
   }
-  const empty = loaded && items.length === 0 && !error;
+
+  const filtered = topic !== "";
+  const waiting = changing || (loading && items.length === 0);
+  const empty = loaded && !waiting && items.length === 0 && !error;
+  const topicsReady = topics !== null;
 
   return (
-    <section aria-label="Questions" className={topics.length > 0 || !topicsReady ? "bank" : undefined}>
+    <section aria-label="Questions" className={!topicsReady || options.length > 1 ? "bank" : undefined}>
       {!topicsReady && <div className="filters filters-loading" aria-hidden="true" />}
-      {topicsReady && topics.length > 0 && (
+      {topicsReady && options.length > 1 && (
         <section className="filters" aria-label="Filter questions">
           <div>
             <p id="qb-topic" className="filter-name">
@@ -96,10 +114,10 @@ export default function QuestionBank({ course, topics, topicsReady, refreshKey, 
                   key={t}
                   type="button"
                   role="radio"
-                  aria-checked={topic === t}
-                  tabIndex={topic === t ? 0 : -1}
+                  aria-checked={picked === t}
+                  tabIndex={picked === t ? 0 : -1}
                   className="option"
-                  onClick={() => setTopic(t)}
+                  onClick={() => choose(t)}
                 >
                   {t || "All topics"}
                 </button>
@@ -120,9 +138,9 @@ export default function QuestionBank({ course, topics, topicsReady, refreshKey, 
           <div className="empty">
             <p className="empty-title">No questions yet</p>
             <p>
-              <button type="button" className="text-button" onClick={onUploadClick}>
+              <Link className="text-button" href={coursePath(course, "upload")}>
                 Upload a past exam
-              </button>{" "}
+              </Link>{" "}
               and its questions will appear here, laid out as they were printed.
             </p>
           </div>
@@ -131,11 +149,7 @@ export default function QuestionBank({ course, topics, topicsReady, refreshKey, 
           <div className="empty">
             <p className="empty-title">No questions on this topic yet</p>
             <p>
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => setTopic("")}
-              >
+              <button type="button" className="text-button" onClick={() => choose("")}>
                 Show all topics
               </button>
             </p>
@@ -145,31 +159,32 @@ export default function QuestionBank({ course, topics, topicsReady, refreshKey, 
         <h2 id="question-list" className="sr-note" tabIndex={-1}>
           Questions{filtered ? " on " + topic : ""}
         </h2>
-        {items.length > 0 && (
-          <div className="sheet">
-            <ol className="questions">
-              {items.map((q, i) => (
-                <li key={q.id}>
-                  <QuestionItem question={q} number={i + 1} />
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
-
-        {/* First load: placeholder cards hold the questions' place, so nothing
-            jumps when they arrive. The status line is for screen readers then. */}
-        {loading && items.length === 0 && (
+        {/* While a new topic's questions load, placeholder cards stand in for
+            the list, so nothing jumps when they arrive. */}
+        {waiting ? (
           <div className="sheet" aria-hidden="true">
             {[0, 1, 2].map((i) => (
               <div key={i} className="question-skeleton" />
             ))}
           </div>
+        ) : (
+          items.length > 0 && (
+            <div className="sheet">
+              <ol className="questions">
+                {items.map((q, i) => (
+                  <li key={q.id}>
+                    <QuestionItem question={q} number={i + 1} />
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )
         )}
 
         <div className="below-sheet" aria-live="polite">
-          {loading && <p className={items.length === 0 ? "sr-note" : "muted"}>Loading questions…</p>}
-          {!loading && cursor !== null && (
+          {waiting && <p className="sr-note">Loading questions…</p>}
+          {!waiting && loading && <p className="muted">Loading questions…</p>}
+          {!waiting && !loading && cursor !== null && (
             <button type="button" className="btn-quiet" onClick={() => void load(cursor)}>
               Show more questions
             </button>

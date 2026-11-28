@@ -110,6 +110,8 @@ body {
   }
   .course-link {
     position: relative;
+    display: inline-flex;
+    align-items: center;
     height: 100%;
     padding: 0 0.625rem;
     color: var(--muted);
@@ -119,11 +121,11 @@ body {
   .course-link:hover {
     color: var(--ink);
   }
-  .course-link[aria-current="true"] {
+  .course-link[aria-current] {
     color: var(--ink);
     font-weight: 600;
   }
-  .course-link[aria-current="true"]::after {
+  .course-link[aria-current]::after {
     content: "";
     position: absolute;
     right: 0.625rem;
@@ -195,6 +197,44 @@ body {
     color: var(--muted);
   }
 
+  /* Home page: the course list as cards. */
+  .home-section + .home-section {
+    margin-top: 2.5rem;
+  }
+  .home-section h2 {
+    margin-bottom: 0.875rem;
+  }
+  .course-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 0.75rem;
+  }
+  .course-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    height: 100%;
+    padding: 1rem 1.125rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .course-card:hover {
+    border-color: var(--line-strong);
+    box-shadow: 0 4px 14px -6px rgb(21 23 28 / 0.18);
+  }
+  .course-card-code {
+    font-size: 1.375rem;
+    font-weight: 600;
+    font-stretch: 85%;
+    letter-spacing: -0.01em;
+  }
+  .course-card-name {
+    color: var(--muted);
+    font-size: 0.9375rem;
+  }
+
   /* Segmented control for the three views. */
   .tabs {
     display: inline-flex;
@@ -214,6 +254,7 @@ body {
   .tab:hover {
     color: var(--ink);
   }
+  .tab[aria-current],
   .tab[aria-selected="true"] {
     background: var(--surface);
     box-shadow: var(--raise);

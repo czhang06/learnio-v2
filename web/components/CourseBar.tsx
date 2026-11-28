@@ -2,25 +2,28 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import AccountMenu from "@/components/AccountMenu";
+import { useAccount } from "@/lib/account";
 import { createCourse, errorMessage } from "@/lib/api";
 import type { Course } from "@/lib/api";
+import { coursePath } from "@/lib/courses";
+import { useCanEdit } from "@/lib/useCanEdit";
 
 interface Props {
-  courses: Course[];
-  selected: string;
-  loading: boolean;
-  error: string | null;
-  onSelect: (code: string) => void;
-  onCreated: (course: Course) => void;
-  /** False on the read-only demo: the Add course control is hidden. */
-  canEdit: boolean;
-  /** Codes of the courses the signed-in user follows; listed first. */
-  following: Set<string>;
+  /** Null when the server could not load them (the API was asleep). */
+  courses: Course[] | null;
+  /** The course whose pages are open, if any. */
+  selected?: string;
 }
 
-export default function CourseBar({ courses, selected, loading, error, onSelect, onCreated, canEdit, following }: Props) {
+export default function CourseBar({ courses: loaded, selected }: Props) {
+  const router = useRouter();
+  const { canEdit } = useCanEdit();
+  const { following } = useAccount();
+  const courses = loaded ?? [];
+  const error = loaded === null;
   const ordered = [...courses.filter((c) => following.has(c.code)), ...courses.filter((c) => !following.has(c.code))];
   const [adding, setAdding] = useState(false);
   const [code, setCode] = useState("");
@@ -43,7 +46,7 @@ export default function CourseBar({ courses, selected, loading, error, onSelect,
       setName("");
       setTopics("");
       setAdding(false);
-      onCreated(course);
+      router.push(coursePath(course.code, "upload"));
     } catch (err) {
       setFormError(errorMessage(err));
     } finally {
@@ -57,21 +60,19 @@ export default function CourseBar({ courses, selected, loading, error, onSelect,
         <p className="wordmark">LearnIO</p>
 
         <nav aria-label="Courses" className="course-nav">
-          {loading && <span className="topbar-note">Loading courses…</span>}
           {error && <span className="topbar-note">Courses unavailable</span>}
           <ul className="course-list">
             {ordered.map((c, i) => (
               <li key={c.id} className={i > 0 && following.has(ordered[i - 1].code) && !following.has(c.code) ? "course-list-rest" : undefined}>
-                <button
-                  type="button"
+                <Link
+                  href={coursePath(c.code)}
                   className="course-link"
                   title={c.name || undefined}
-                  aria-current={c.code === selected ? "true" : undefined}
-                  onClick={() => onSelect(c.code)}
+                  aria-current={c.code === selected ? "page" : undefined}
                 >
                   {c.code}
                   {following.has(c.code) && <span className="sr-note"> (following)</span>}
-                </button>
+                </Link>
               </li>
             ))}
           </ul>
