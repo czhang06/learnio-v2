@@ -18,6 +18,13 @@ export interface Question {
   id: number;
   text: string;
   topics: string[];
+  /** Path under the API of a PNG of the question as printed, when there is one. */
+  image_url?: string | null;
+}
+
+/** Absolute URL for a path the API returned, such as a question's image_url. */
+export function apiUrl(path: string): string {
+  return API_URL + path;
 }
 
 export interface QuestionPage {

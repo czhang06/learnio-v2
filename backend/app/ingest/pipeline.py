@@ -10,8 +10,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import Course, Document, DocumentStatus, DraftQuestion, Question
+import logging
+
 from . import segmenter
-from .pdf_extract import extract_text
+from .images import render_questions
+from .pdf_extract import extract_layout
+from .storage import get_storage
+
+log = logging.getLogger(__name__)
 
 NO_QUESTIONS = (
     "No questions found in this PDF. Questions must start on their own line with a heading "
@@ -51,15 +57,17 @@ def looks_unreadable(text: str) -> bool:
 def stage_questions(session: Session, doc: Document, data: bytes) -> None:
     """Replace the document's drafts with freshly segmented questions and mark it for review."""
     try:
-        text = extract_text(data)
+        layout = extract_layout(data)
     except Exception as exc:  # corrupt or encrypted PDF
         raise IngestError(f"Could not read PDF: {exc}") from exc
-    if looks_unreadable(text):
+    if looks_unreadable(layout.text):
         raise IngestError(UNREADABLE)
 
-    pieces = segmenter.split_questions(text)
-    if not pieces:
+    found = segmenter.split_questions_with_lines(layout.text)
+    if not found:
         raise IngestError(NO_QUESTIONS)
+    pieces = [body for body, _, _ in found]
+    images = _images(data, layout, found)
 
     course = session.get(Course, doc.course_id)
     labels = segmenter.tag_topics_with_llm(pieces, [t.name for t in course.topics])
@@ -67,10 +75,17 @@ def stage_questions(session: Session, doc: Document, data: bytes) -> None:
     doc.drafts.clear()
     session.flush()
     hashes = []
-    for position, (piece, names) in enumerate(zip(pieces, labels)):
+    storage = get_storage()
+    for position, (piece, names, image) in enumerate(zip(pieces, labels, images)):
         digest = segmenter.text_hash(piece)
         hashes.append(digest)
-        doc.drafts.append(DraftQuestion(position=position, text=piece, text_hash=digest, topic_names=list(names)))
+        image_key = None
+        if image is not None:
+            image_key = f"images/{doc.id}-{position}.png"
+            storage.put(image_key, image, "image/png")
+        doc.drafts.append(
+            DraftQuestion(position=position, text=piece, text_hash=digest, topic_names=list(names), image_key=image_key)
+        )
 
     existing = set(
         session.scalars(select(Question.text_hash).where(Question.course_id == doc.course_id, Question.text_hash.in_(hashes)))
@@ -78,3 +93,12 @@ def stage_questions(session: Session, doc: Document, data: bytes) -> None:
     doc.question_count = len(set(hashes) - existing)
     doc.status = DocumentStatus.NEEDS_REVIEW
     doc.error = None
+
+
+def _images(data: bytes, layout, found) -> list[bytes | None]:
+    """PNG crops of each question; without them the questions still have text."""
+    try:
+        return render_questions(data, layout.lines, [(first, end) for _, first, end in found])
+    except Exception:
+        log.exception("Rendering question images failed")
+        return [None] * len(found)

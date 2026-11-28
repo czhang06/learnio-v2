@@ -342,3 +342,23 @@ def test_numbered_title_headings():
 def test_table_rows_ending_in_numbers_are_not_titles():
     raw = f" 1 True or False 40 10\n 2 Fast Fourier Transform 5 1\nProblem 1. {LONG_A}\nProblem 2. {LONG_B}\n"
     assert segmenter.split_questions(raw) == [LONG_A, LONG_B]
+
+
+def test_line_ranges_cover_each_question():
+    raw = f"Cover page\n1. {LONG_A}\n   more of A\n\n2. {LONG_B}\n"
+    (a, a0, a1), (b, b0, b1) = segmenter.split_questions_with_lines(raw)
+    lines = raw.split("\n")
+    assert (a0, a1, b0, b1) == (1, 3, 4, 5)
+    assert lines[a0].startswith("1.") and lines[a1 - 1].strip() == "more of A"
+    assert lines[b0].startswith("2.")
+
+
+def test_back_matter_after_the_last_question_is_dropped():
+    raw = (
+        f"1. {LONG_A}\n2. {LONG_B}\n   7\n"
+        "SCRATCH PAPER 1. DO NOT REMOVE FROM THE EXAM.\nYou can use this paper.\n"
+        "MIT OpenCourseWare\nhttps://ocw.mit.edu\n"
+    )
+    questions = segmenter.split_questions_with_lines(raw)
+    assert [q[0] for q in questions] == [LONG_A, LONG_B]
+    assert questions[1][2] == 2

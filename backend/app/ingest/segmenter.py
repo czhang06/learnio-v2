@@ -222,7 +222,16 @@ def _opening(text: str) -> str:
 
 
 def split_questions(raw: str) -> list[str]:
-    """Split exam text into question bodies.
+    """Split exam text into question bodies (see `split_questions_with_lines`)."""
+    return [body for body, _, _ in split_questions_with_lines(raw)]
+
+
+def split_questions_with_lines(raw: str) -> list[tuple[str, int, int]]:
+    """Split exam text into questions: (body, first line, end line) for each.
+
+    Lines are indexes into `raw.split("\n")`, end exclusive, covering the
+    question from its heading to its last line of content, so a caller with
+    each line's position on the page can find the question in the PDF.
 
     Every line that could start a question is a candidate. Candidates are
     grouped by style, and the group whose numbers run 1, 2, 3... furthest is
@@ -282,18 +291,41 @@ def split_questions(raw: str) -> list[str]:
     kept.sort(key=lambda h: h.match.start())
     stops = sorted([h.match.start() for h in kept] + cuts)
 
-    questions: list[str] = []
+    questions: list[tuple[str, int, int]] = []
     for h in kept:
         start = h.match.start()
         end = next((s for s in stops if s > start), len(raw))
+        end = _content_end(raw, h.body_start, end)
         m, begin = h.match, h.body_start
         hang = begin - (max(raw.rfind("\n", 0, begin), raw.rfind("\f", 0, begin)) + 1)
         body = clean_layout(_SIGN_OFF.sub("", raw[begin:end]), hang)
         body = re.sub(r"^[,;:]\s*", "", body)  # "Quiz 1, Question 1, Rules": drop the joining comma
         body = _marks_prefix(m["marks"]) + body
         if len(normalize(body)) >= _MIN_CHARS:
-            questions.append(body)
+            first = raw.count("\n", 0, start)
+            questions.append((body, first, raw.count("\n", 0, end) + 1))
     return questions
+
+
+# Pages that follow the last question rather than belong to it: scratch paper,
+# tear-off sheets, blank pages and OpenCourseWare's licence footer.
+_BACK_MATTER = re.compile(
+    r"^[ \t]*(?:SCRATCH\s+PAPER\b|Tear\s+off\s+sheet\b|Blank(?:,\s*final)?\s+page\b"
+    r"|This\s+page\s+(?:is\s+)?left\s+(?:almost\s+)?blank|MIT\s+OpenCourseWare[ \t]*$)",
+    re.MULTILINE,
+)
+
+
+def _content_end(raw: str, begin: int, end: int) -> int:
+    """Where a question's content stops: before any back matter, and before
+    trailing blank lines and bare page numbers."""
+    back = _BACK_MATTER.search(raw, begin, end)
+    if back:
+        end = back.start()
+    lines = raw[begin:end].split("\n")
+    while lines and (not lines[-1].strip() or lines[-1].strip().isdigit()):
+        lines.pop()
+    return begin + len("\n".join(lines))
 
 
 def tag_topics_by_keyword(question: str, topics: list[str]) -> list[str]:

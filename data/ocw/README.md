@@ -18,6 +18,21 @@ Exams are in each course folder and practice material in its `practice/`
 subfolder. Solutions are not included. The 2010 and 2011 runs of 18.06 are
 seeded as one course.
 
+## Loading the demo
+
+`bench/seed_demo.py` creates the six courses (with the topics listed in
+`manifest.json`) and uploads every PDF through the API, waiting for each to
+finish ingestion:
+
+```bash
+python bench/seed_demo.py --api http://localhost:8000 --dry-run      # what would be loaded
+LEARNIO_ADMIN_KEY=... python bench/seed_demo.py --api https://learnio-api.onrender.com
+```
+
+A full local run loads 185 of the 188 PDFs and 737 questions in about three
+minutes. The two 2011 18.06 files with unreadable fonts and 6.041 recitation 22
+(one unnumbered problem) fail with an explanation.
+
 ## License
 
 These files are unmodified copies of materials from MIT OpenCourseWare

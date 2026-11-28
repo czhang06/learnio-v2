@@ -24,6 +24,10 @@ uvicorn app.main:app --reload
 
 Set `GEMINI_API_KEY` to enable LLM topic tagging; without it, questions are tagged by keyword match against the course's topics.
 
+### Questions are shown as printed
+
+Ingestion also crops each question's region out of its PDF: text, drawn figures and embedded images, without running headers, page numbers or the blank space left for answers, across page breaks. The PNG is kept in the PDF store and served at `GET /api/images/{name}` (each question's `image_url`), so matrices, fractions and diagrams stay readable. The extracted text is still stored for search, deduplication and topic tagging, and the app offers it under "Show as text".
+
 ### Uploads run in the background
 
 `POST /api/documents` checks the file, stores the PDF and returns `202` with a queued document. A worker loop inside the API process (Render's free plan has no separate worker service) claims jobs from the `documents` table with `FOR UPDATE SKIP LOCKED` and moves each through `queued → processing → needs_review → published`, or `failed` with an error message. Questions wait in `draft_questions` until their document is published, so listing and exam sampling never see unreviewed rows.
@@ -45,6 +49,7 @@ Set `GEMINI_API_KEY` to enable LLM topic tagging; without it, questions are tagg
 | GET | `/api/courses` | List courses |
 | GET | `/api/courses/{code}/topics` | List a course's topics |
 | POST | `/api/documents` | Upload an exam/syllabus PDF (multipart); returns 202 and queues it |
+| GET | `/api/images/{name}` | A question's image, as linked from its `image_url` |
 | GET | `/api/documents/{id}` | Ingestion status, question count and error |
 | GET | `/api/documents/{id}/drafts` | Questions found, before publishing |
 | POST | `/api/documents/{id}/publish` | Add a reviewed document's questions to the bank |
