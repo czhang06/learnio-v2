@@ -35,7 +35,20 @@
         "problem-session-7": "mit6_006s20_prob7",
         "problem-session-8": "mit6_006s20_prob8",
         "problem-session-9": "mit6_006s20_prob9"
-      }
+      },
+      "topics": [
+        "asymptotic analysis",
+        "recurrences",
+        "sorting",
+        "hashing",
+        "binary heaps",
+        "binary search trees",
+        "AVL trees",
+        "graph search",
+        "shortest paths",
+        "dynamic programming",
+        "complexity"
+      ]
     },
     {
       "code": "MIT 6.046J",
@@ -58,7 +71,23 @@
         "ps8": "problem-set-8",
         "ps9": "problem-set-9",
         "ps10": "problem-set-10"
-      }
+      },
+      "topics": [
+        "divide and conquer",
+        "amortized analysis",
+        "randomized algorithms",
+        "hashing",
+        "van Emde Boas trees",
+        "greedy algorithms",
+        "dynamic programming",
+        "minimum spanning trees",
+        "network flow",
+        "linear programming",
+        "NP-completeness",
+        "approximation algorithms",
+        "distributed algorithms",
+        "cache-oblivious algorithms"
+      ]
     },
     {
       "code": "MIT 18.06",
@@ -70,7 +99,26 @@
         "exam2": "mit18_06s10_exam2_s10",
         "exam3": "mit18_06s10_exam3_s10",
         "final": "mit18_06s10_final_exam"
-      }
+      },
+      "topics": [
+        "elimination",
+        "LU factorization",
+        "vector spaces",
+        "rank and nullspace",
+        "orthogonality",
+        "projections",
+        "least squares",
+        "Gram-Schmidt",
+        "determinants",
+        "eigenvalues",
+        "diagonalization",
+        "symmetric matrices",
+        "positive definite matrices",
+        "SVD",
+        "linear transformations",
+        "differential equations",
+        "Markov matrices"
+      ]
     },
     {
       "code": "MIT 18.06",
@@ -115,7 +163,26 @@
         "session-3-6": "mit18_06scf11_ses3-6prob",
         "session-3-7": "mit18_06scf11_ses3-7prob",
         "session-3-8": "mit18_06scf11_ses3-8prob"
-      }
+      },
+      "topics": [
+        "elimination",
+        "LU factorization",
+        "vector spaces",
+        "rank and nullspace",
+        "orthogonality",
+        "projections",
+        "least squares",
+        "Gram-Schmidt",
+        "determinants",
+        "eigenvalues",
+        "diagonalization",
+        "symmetric matrices",
+        "positive definite matrices",
+        "SVD",
+        "linear transformations",
+        "differential equations",
+        "Markov matrices"
+      ]
     },
     {
       "code": "MIT 6.042J",
@@ -166,7 +233,27 @@
         "recitation-21": "mit6_042jf10_rec21",
         "recitation-22": "mit6_042jf10_rec22",
         "recitation-23": "mit6_042jf10_rec23"
-      }
+      },
+      "topics": [
+        "propositional logic",
+        "proofs",
+        "induction",
+        "number theory",
+        "modular arithmetic",
+        "graph theory",
+        "coloring",
+        "trees",
+        "asymptotics",
+        "sums",
+        "recurrences",
+        "counting",
+        "probability",
+        "conditional probability",
+        "random variables",
+        "expectation",
+        "variance",
+        "tail bounds"
+      ]
     },
     {
       "code": "MIT 6.041",
@@ -231,7 +318,26 @@
         "recitation-22": "recitation-22",
         "recitation-23": "recitation-23",
         "recitation-24": "recitation-24"
-      }
+      },
+      "topics": [
+        "probability models",
+        "conditional probability",
+        "independence",
+        "counting",
+        "discrete random variables",
+        "continuous random variables",
+        "joint distributions",
+        "conditional expectation",
+        "derived distributions",
+        "Bernoulli process",
+        "Poisson process",
+        "Markov chains",
+        "law of large numbers",
+        "central limit theorem",
+        "Bayesian inference",
+        "estimation",
+        "hypothesis testing"
+      ]
     },
     {
       "code": "MIT 6.034",
@@ -254,7 +360,23 @@
         "quiz3-2008": "mit6_034f10_quiz3_2008",
         "quiz4-2008": "mit6_034f10_quiz4_2008",
         "final-2008": "mit6_034f10_final_2008"
-      }
+      },
+      "topics": [
+        "rule-based systems",
+        "search",
+        "games",
+        "minimax",
+        "alpha-beta pruning",
+        "constraint propagation",
+        "nearest neighbors",
+        "identification trees",
+        "neural nets",
+        "support vector machines",
+        "boosting",
+        "learning",
+        "vision",
+        "cognitive architectures"
+      ]
     }
   ],
   "note": "exams are past exams and quizzes; practice holds problem sets, recitation and tutorial problems. Solutions are not included."
