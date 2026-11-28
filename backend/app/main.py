@@ -13,6 +13,7 @@ from .exams.router import router as exams_router
 from .ingest import worker
 from .ingest.router import router as ingest_router
 from .questions.router import router as questions_router
+from .users.router import router as users_router
 
 
 @asynccontextmanager
@@ -55,5 +56,5 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-for router in (core_router, courses_router, questions_router, exams_router, ingest_router):
+for router in (core_router, courses_router, questions_router, exams_router, ingest_router, users_router):
     app.include_router(router)

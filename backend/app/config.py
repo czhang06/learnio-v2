@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     # Unset (local development, tests) leaves both open.
     admin_key: str | None = None
 
+    # Accounts. The frontend signs users in (Google, through NextAuth) and
+    # sends the API a short-lived HS256 token signed with this shared secret.
+    # Unset: no accounts, every visitor is a guest.
+    auth_api_secret: str | None = None
+    # Comma-separated emails whose accounts get the admin role (uploads,
+    # adding courses), alongside the admin key.
+    admin_emails: str = ""
+
     # Comma-separated browser origins allowed to call the API. "*" is
     # acceptable for a public demo with no auth or cookies; narrow it to the
     # deployed frontend origin the moment either of those changes.
@@ -63,6 +71,10 @@ class Settings(BaseSettings):
     def sqlalchemy_url(self) -> str:
         """The database URL with a driver SQLAlchemy can actually load."""
         return normalize_database_url(self.database_url)
+
+    @property
+    def admin_email_set(self) -> set[str]:
+        return {e.strip().lower() for e in self.admin_emails.split(",") if e.strip()}
 
     @property
     def origin_list(self) -> list[str]:
