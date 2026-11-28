@@ -64,6 +64,13 @@ def process_document(session: Session, doc: Document) -> None:
     doc.status = DocumentStatus.PROCESSING
     try:
         stage_questions(session, doc, get_storage().get(doc.storage_key))
+        doc.locked_at = None
+        if settings.auto_publish:
+            # Publish in the same transaction, so nobody polling the document
+            # sees it pass through needs_review on its way to published.
+            publish_document(session, doc)
+        else:
+            session.commit()
     except Exception as exc:
         session.rollback()
         if not isinstance(exc, IngestError):
@@ -72,11 +79,6 @@ def process_document(session: Session, doc: Document) -> None:
         doc.error = str(exc) or exc.__class__.__name__
         doc.locked_at = None
         session.commit()
-        return
-    doc.locked_at = None
-    session.commit()
-    if settings.auto_publish:
-        publish_document(session, doc)
 
 
 def run_once(factory: sessionmaker = SessionLocal) -> bool:
