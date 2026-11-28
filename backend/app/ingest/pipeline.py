@@ -10,10 +10,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import Course, Document, DocumentStatus, DraftQuestion, Question
+import hashlib
 import logging
 
 from . import segmenter
-from .images import render_questions
+from .images import display_size, render_questions, to_web
 from .pdf_extract import extract_layout
 from .storage import get_storage
 
@@ -79,12 +80,24 @@ def stage_questions(session: Session, doc: Document, data: bytes) -> None:
     for position, (piece, names, image) in enumerate(zip(pieces, labels, images)):
         digest = segmenter.text_hash(piece)
         hashes.append(digest)
-        image_key = None
+        image_key, size = None, (None, None)
         if image is not None:
-            image_key = f"images/{doc.id}-{position}.png"
-            storage.put(image_key, image, "image/png")
+            # The content hash in the name means a re-rendered image gets a new
+            # URL, so browsers never show a stale copy of an immutable URL.
+            web = to_web(image)
+            image_key = f"images/{doc.id}-{position}-{hashlib.sha256(web.data).hexdigest()[:10]}.{web.extension}"
+            storage.put(image_key, web.data, web.media_type)
+            size = display_size(web.width, web.height)
         doc.drafts.append(
-            DraftQuestion(position=position, text=piece, text_hash=digest, topic_names=list(names), image_key=image_key)
+            DraftQuestion(
+                position=position,
+                text=piece,
+                text_hash=digest,
+                topic_names=list(names),
+                image_key=image_key,
+                image_width=size[0],
+                image_height=size[1],
+            )
         )
 
     existing = set(

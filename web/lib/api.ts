@@ -20,11 +20,21 @@ export interface Question {
   topics: string[];
   /** Path under the API of a PNG of the question as printed, when there is one. */
   image_url?: string | null;
+  /** CSS size to show the image at; it shrinks to fit narrower columns. */
+  image_width?: number | null;
+  image_height?: number | null;
 }
 
-/** Absolute URL for a path the API returned, such as a question's image_url. */
+/** Absolute URL for a path the API returned. */
 export function apiUrl(path: string): string {
   return API_URL + path;
+}
+
+/** Where the browser loads a question image from: this app's own origin,
+ * which proxies to the API and lets the CDN cache it (see next.config.js). */
+export function imageUrl(path: string): string {
+  const prefix = "/api/images/";
+  return path.startsWith(prefix) ? "/q-images/" + path.slice(prefix.length) : apiUrl(path);
 }
 
 export interface QuestionPage {

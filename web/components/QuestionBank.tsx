@@ -1,5 +1,6 @@
 "use client";
 
+import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import QuestionItem from "@/components/QuestionItem";
 import { errorMessage, listQuestions } from "@/lib/api";
@@ -8,11 +9,13 @@ import type { Question } from "@/lib/api";
 interface Props {
   course: string;
   topics: string[];
+  /** False while the course's topics load: their space is held so nothing jumps. */
+  topicsReady: boolean;
   refreshKey: number;
   onUploadClick: () => void;
 }
 
-export default function QuestionBank({ course, topics, refreshKey, onUploadClick }: Props) {
+export default function QuestionBank({ course, topics, topicsReady, refreshKey, onUploadClick }: Props) {
   const [topic, setTopic] = useState("");
   const [items, setItems] = useState<Question[]>([]);
   const [cursor, setCursor] = useState<number | null>(null);
@@ -63,23 +66,38 @@ export default function QuestionBank({ course, topics, refreshKey, onUploadClick
   }, [load, course, refreshKey]);
 
   const filtered = topic !== "";
+  const options = [""].concat(topics);
+
+  function onTopicKey(e: KeyboardEvent<HTMLDivElement>) {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (!step && e.key !== "Home" && e.key !== "End") return;
+    e.preventDefault();
+    const i = options.indexOf(topic);
+    const next = e.key === "Home" ? 0 : e.key === "End" ? options.length - 1 : (i + (step ?? 0) + options.length) % options.length;
+    setTopic(options[next]);
+    const group = e.currentTarget;
+    requestAnimationFrame(() => (group.querySelectorAll("button")[next] as HTMLButtonElement | undefined)?.focus());
+  }
   const empty = loaded && items.length === 0 && !error;
 
   return (
-    <section aria-label="Questions" className={topics.length > 0 ? "bank" : undefined}>
-      {topics.length > 0 && (
-        <aside className="filters" aria-label="Filter questions">
+    <section aria-label="Questions" className={topics.length > 0 || !topicsReady ? "bank" : undefined}>
+      {!topicsReady && <div className="filters filters-loading" aria-hidden="true" />}
+      {topicsReady && topics.length > 0 && (
+        <section className="filters" aria-label="Filter questions">
           <div>
             <p id="qb-topic" className="filter-name">
               Topic
             </p>
-            <div className="options" role="radiogroup" aria-labelledby="qb-topic">
-              {[""].concat(topics).map((t) => (
+            {/* One tab stop for the whole group; arrow keys move between topics. */}
+            <div className="options" role="radiogroup" aria-labelledby="qb-topic" onKeyDown={onTopicKey}>
+              {options.map((t) => (
                 <button
                   key={t}
                   type="button"
                   role="radio"
                   aria-checked={topic === t}
+                  tabIndex={topic === t ? 0 : -1}
                   className="option"
                   onClick={() => setTopic(t)}
                 >
@@ -88,7 +106,7 @@ export default function QuestionBank({ course, topics, refreshKey, onUploadClick
               ))}
             </div>
           </div>
-        </aside>
+        </section>
       )}
 
       <div>
@@ -124,6 +142,9 @@ export default function QuestionBank({ course, topics, refreshKey, onUploadClick
           </div>
         )}
 
+        <h2 id="question-list" className="sr-note" tabIndex={-1}>
+          Questions{filtered ? " on " + topic : ""}
+        </h2>
         {items.length > 0 && (
           <div className="sheet">
             <ol className="questions">
@@ -136,8 +157,18 @@ export default function QuestionBank({ course, topics, refreshKey, onUploadClick
           </div>
         )}
 
+        {/* First load: placeholder cards hold the questions' place, so nothing
+            jumps when they arrive. The status line is for screen readers then. */}
+        {loading && items.length === 0 && (
+          <div className="sheet" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="question-skeleton" />
+            ))}
+          </div>
+        )}
+
         <div className="below-sheet" aria-live="polite">
-          {loading && <p className="muted">Loading questions…</p>}
+          {loading && <p className={items.length === 0 ? "sr-note" : "muted"}>Loading questions…</p>}
           {!loading && cursor !== null && (
             <button type="button" className="btn-quiet" onClick={() => void load(cursor)}>
               Show more questions

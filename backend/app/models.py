@@ -102,6 +102,8 @@ class DraftQuestion(Base):
     text_hash: Mapped[str] = mapped_column(String(64))
     topic_names: Mapped[list[str]] = mapped_column(ARRAY(String(120)), default=list)
     image_key: Mapped[str | None] = mapped_column(String(255))
+    image_width: Mapped[int | None] = mapped_column(Integer)
+    image_height: Mapped[int | None] = mapped_column(Integer)
 
     document: Mapped[Document] = relationship(back_populates="drafts")
 
@@ -116,6 +118,8 @@ class Question(Base):
     text: Mapped[str] = mapped_column(Text)
     text_hash: Mapped[str] = mapped_column(String(64))
     image_key: Mapped[str | None] = mapped_column(String(255))  # PNG of the question's region of its PDF
+    image_width: Mapped[int | None] = mapped_column(Integer)  # CSS px to show it at
+    image_height: Mapped[int | None] = mapped_column(Integer)
     rand: Mapped[float] = mapped_column(Float(53), server_default=func.random())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

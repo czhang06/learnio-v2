@@ -64,7 +64,8 @@ def test_figures_are_kept_and_answer_space_is_collapsed():
     width, height = size(first)
     # Question 1 spans y=100..600 on the page: text, the red figure, then about
     # 400pt of blank answer space that is dropped.
-    assert 100 * 2 < height < 250 * 2
+    px_per_pt = images._DPI / 72
+    assert 100 * px_per_pt < height < 250 * px_per_pt
     pix = fitz.Pixmap(first)
     reds = sum(
         1
@@ -80,7 +81,7 @@ def test_running_headers_and_page_numbers_are_left_out():
     # Question 2 crosses the page break: its line on page 1 and its part (b)
     # on page 2, without "CS 101 Midterm" or the page numbers in between.
     _, height = size(second)
-    assert height < 120 * 2
+    assert height < 120 * images._DPI / 72
 
 
 def test_nothing_to_crop_gives_none():
@@ -92,7 +93,8 @@ def test_nothing_to_crop_gives_none():
 def test_very_long_questions_are_capped(monkeypatch):
     monkeypatch.setattr(images, "_MAX_HEIGHT", 30.0)
     _, _, pngs = render(exam_pdf())
-    assert all(size(p)[1] <= 30 * 2 + 2 for p in pngs)
+    px_per_pt = images._DPI / 72
+    assert all(size(p)[1] <= 30 * px_per_pt + 2 for p in pngs)
 
 
 def test_uploaded_questions_link_to_their_images(client, make_course):
@@ -102,9 +104,9 @@ def test_uploaded_questions_link_to_their_images(client, make_course):
     assert all(q["image_url"].startswith("/api/images/") for q in items)
     r = client.get(items[0]["image_url"])
     assert r.status_code == 200
-    assert r.headers["content-type"] == "image/png"
+    assert r.headers["content-type"] == "image/webp"
     assert "immutable" in r.headers["cache-control"]
-    assert r.content.startswith(b"\x89PNG")
+    assert r.content[8:12] == b"WEBP"
 
 
 def test_image_names_are_checked(client):
@@ -132,3 +134,72 @@ def test_reupload_refreshes_the_image(client, make_course, db_session):
     db_session.expire_all()
     after = set(db_session.scalars(select(Question.image_key)))
     assert before.isdisjoint(after) and len(after) == 3
+
+
+def test_display_size_is_the_same_scale_for_every_question():
+    factor = images.DISPLAY_SCALE * 72 / images._DPI
+    assert images.display_size(1000, 500) == (round(1000 * factor), round(500 * factor))
+
+
+def test_web_images_are_lossless_and_greyscale_unless_coloured():
+    import io
+
+    from PIL import Image
+
+    from PIL import ImageChops
+
+    def colourful(img):
+        r, g, b = img.convert("RGB").split()
+        return max(ImageChops.difference(r, g).getextrema()[1], ImageChops.difference(g, b).getextrema()[1]) > 0
+
+    _, _, (with_figure, plain, _) = render(exam_pdf())
+    for png, keeps_colour in ((with_figure, True), (plain, False)):
+        web = images.to_web(png)
+        assert len(web.data) < len(png)
+        decoded = Image.open(io.BytesIO(web.data))
+        assert decoded.size == size(png)
+        assert colourful(decoded) is keeps_colour  # the red figure stays red; plain text goes grey
+        original = Image.open(io.BytesIO(png))
+        mode = "RGB" if keeps_colour else "L"
+        assert decoded.convert(mode).tobytes() == original.convert(mode).tobytes()  # lossless
+
+
+def test_questions_carry_their_image_size(client, make_course):
+    make_course()
+    upload(client, make_pdf())
+    items = client.get("/api/questions", params={"course_code": "CS101"}).json()["items"]
+    assert all(q["image_width"] > 0 and q["image_height"] > 0 for q in items)
+    # A name carries a content hash, so a re-rendered image never reuses a URL.
+    assert all(q["image_url"].count("-") == 2 and q["image_url"].endswith(".webp") for q in items)
+
+
+def test_image_responses_are_cacheable_by_cdns(client, make_course):
+    make_course()
+    upload(client, make_pdf())
+    url = client.get("/api/questions", params={"course_code": "CS101"}).json()["items"][0]["image_url"]
+    assert "s-maxage" in client.get(url).headers["cache-control"]
+
+
+def test_reprocessing_refreshes_questions_in_place(client, make_course, db_session):
+    make_course()
+    doc = upload(client, make_pdf()).json()
+    before = {q["id"]: q["image_url"] for q in client.get("/api/questions", params={"course_code": "CS101"}).json()["items"]}
+    db_session.execute(Question.__table__.update().values(image_key=None, image_width=None, image_height=None))
+    db_session.commit()
+
+    again = client.post(f"/api/documents/{doc['id']}/reprocess").json()
+    assert (again["status"], again["question_count"]) == ("published", 0)
+    after = {q["id"]: q for q in client.get("/api/questions", params={"course_code": "CS101"}).json()["items"]}
+    assert set(after) == set(before)  # same questions, none duplicated
+    assert all(q["image_url"] and q["image_width"] for q in after.values())
+
+
+def test_only_finished_documents_with_a_stored_pdf_can_be_reprocessed(client, make_course, db_session):
+    from app.models import Document
+
+    course = make_course()
+    for status, key in (("processing", "documents/1.pdf"), ("published", None)):
+        doc = Document(course_id=course.id, filename="x.pdf", status=status, storage_key=key)
+        db_session.add(doc)
+        db_session.commit()
+        assert client.post(f"/api/documents/{doc.id}/reprocess").status_code == 409

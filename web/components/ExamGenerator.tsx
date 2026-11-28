@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import QuestionItem from "@/components/QuestionItem";
 import { useAccount } from "@/lib/account";
@@ -43,6 +43,17 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
   const [results, setResults] = useState<Attempt | null>(null);
   const [history, setHistory] = useState<AttemptSummary[]>([]);
   const [historyKey, setHistoryKey] = useState(0);
+  // After Retry or reopening an attempt, move focus to the new sheet's title
+  // so keyboard and screen-reader users land on what changed.
+  const sheetTitle = useRef<HTMLHeadingElement>(null);
+  const focusSheet = useRef(false);
+
+  useEffect(() => {
+    if (focusSheet.current && exam) {
+      focusSheet.current = false;
+      sheetTitle.current?.focus();
+    }
+  }, [exam]);
 
   useEffect(() => {
     setPicked([]);
@@ -100,9 +111,9 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
     setBusy(true);
     setError(null);
     try {
+      focusSheet.current = true;
       show(await retryAttempt(exam.attempt_id));
       setHistoryKey((k) => k + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -114,6 +125,7 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
     setError(null);
     try {
       const attempt = await getAttempt(id);
+      focusSheet.current = true;
       const restored: Record<number, Result | null> = {};
       for (const q of attempt.questions) restored[q.id] = q.result;
       show(
@@ -229,7 +241,9 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
         {exam && exam.questions.length > 0 && (
           <div className="sheet">
             <header className="sheet-head">
-              <h2 className="sheet-title">{exam.course_code} practice exam</h2>
+              <h2 className="sheet-title" ref={sheetTitle} tabIndex={-1}>
+                {exam.course_code} practice exam
+              </h2>
               <p className="sheet-facts">
                 {exam.questions.length} question{exam.questions.length === 1 ? "" : "s"}
                 {total ? ", " + formatMarks(total) + " in total" : ""}
@@ -287,10 +301,17 @@ export default function ExamGenerator({ course, topics, clientId }: Props) {
 
 function Results({ attempt, busy, onRetry }: { attempt: Attempt; busy: boolean; onRetry: () => void }) {
   const { right, wrong, skipped, unmarked } = attempt.tally;
+  // Finish removes the button that had focus; put focus on the results instead.
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    heading.current?.focus();
+  }, [attempt.id]);
   const marked = right + wrong;
   return (
     <section className="results no-print" aria-label="Results">
-      <h2 className="sheet-title">Results</h2>
+      <h2 className="sheet-title" ref={heading} tabIndex={-1}>
+        Results
+      </h2>
       <p className="results-score">
         {right} of {marked} right
         {skipped ? ", " + skipped + " skipped" : ""}

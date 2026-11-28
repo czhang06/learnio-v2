@@ -82,6 +82,8 @@ def publish_document(session: Session, doc: Document) -> Document:
                 text=draft.text,
                 text_hash=draft.text_hash,
                 image_key=draft.image_key,
+                image_width=draft.image_width,
+                image_height=draft.image_height,
             )
             .on_conflict_do_nothing(index_elements=["course_id", "text_hash"])
             .returning(Question.id)
@@ -90,7 +92,12 @@ def publish_document(session: Session, doc: Document) -> Document:
             session.execute(
                 update(Question)
                 .where(Question.course_id == doc.course_id, Question.text_hash == draft.text_hash)
-                .values(text=draft.text, image_key=draft.image_key)
+                .values(
+                    text=draft.text,
+                    image_key=draft.image_key,
+                    image_width=draft.image_width,
+                    image_height=draft.image_height,
+                )
             )
             continue
         stored += 1
@@ -115,4 +122,25 @@ def retry_document(session: Session, doc: Document) -> Document:
     doc.attempts = 0
     doc.locked_at = None
     session.commit()
+    return doc
+
+
+def reprocess_document(session: Session, doc: Document) -> Document:
+    """Queue a finished document to run through ingestion again from its stored
+    PDF, e.g. after the renderer improves. Its questions are matched by text,
+    so they are refreshed in place (text, image) rather than duplicated."""
+    if doc.status not in (DocumentStatus.PUBLISHED, DocumentStatus.FAILED, DocumentStatus.NEEDS_REVIEW):
+        raise HTTPException(409, f"Document is {doc.status}; wait for it to finish first")
+    if doc.storage_key is None:
+        raise HTTPException(409, "This document was uploaded before PDFs were stored; upload it again.")
+    doc.drafts.clear()
+    doc.status = DocumentStatus.QUEUED
+    doc.error = None
+    doc.attempts = 0
+    doc.locked_at = None
+    session.commit()
+    if settings.ingest_inline:
+        from .worker import process_document
+
+        process_document(session, doc)
     return doc
